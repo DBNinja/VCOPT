@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" >
+    <LinearLayout android:orientation="vertical" android:padding="16dp"
+        android:layout_width="match_parent" android:layout_height="wrap_content">
+
+        <EditText android:id="@+id/etBrand" android:hint="Brand name" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <EditText android:id="@+id/etMaterialName" android:hint="Material name" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <EditText android:id="@+id/etColor" android:hint="Primary color" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <EditText android:id="@+id/etGtin" android:hint="GTIN" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <EditText android:id="@+id/etMinTemp" android:hint="Min print temp (°C)" android:inputType="number" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <EditText android:id="@+id/etMaxTemp" android:hint="Max print temp (°C)" android:inputType="number" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+
+        <Button android:id="@+id/btnGenerateBin" android:text="Generate .bin" android:layout_width="match_parent" android:layout_height="wrap_content" />
+    </LinearLayout>
+</ScrollView>
