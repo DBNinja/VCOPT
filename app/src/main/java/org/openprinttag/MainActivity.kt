@@ -16,7 +16,7 @@ import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import java.io.File
-import org.openprinttag.app.R   // use the actual namespace where R was generated
+import org.openprinttag.app.R
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
@@ -26,6 +26,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.openprinttag.app.databinding.ActivityMainBinding
+import org.openprinttag.model.OpenPrintTagModel
+import org.openprinttag.model.Serializer
 
 class MainActivity : AppCompatActivity() {
 
@@ -38,6 +40,13 @@ class MainActivity : AppCompatActivity() {
 
     // In your Activity
     private var detectedTag: Tag? = null
+
+    // Enum maps for deserialization (loaded lazily)
+    private var classMap: Map<String, Int> = emptyMap()
+    private var typeMap: Map<String, Int> = emptyMap()
+    private var tagsMap: Map<String, Int> = emptyMap()
+    private var certsMap: Map<String, Int> = emptyMap()
+    private var mapsLoaded = false
 
     private val createFileLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -93,13 +102,22 @@ class MainActivity : AppCompatActivity() {
                     // 2. Read all bytes into memory
                     val bytes = inputStream.readBytes()
 
+                    // 3. Try to decode
+                    ensureMapsLoaded()
+                    val serializer = Serializer(classMap, typeMap, tagsMap, certsMap)
+                    val decodedModel = serializer.deserialize(bytes)
+
                     withContext(Dispatchers.Main) {
-                        // 3. Update your "Memory" variable
+                        // 4. Update your "Memory" variable
                         cachedTagData = bytes
 
-                        // 4. Update the UI so you can see the hex
+                        // 5. Update the UI with decoded data or hex
                         val dataDisplay: TextView = findViewById(R.id.tvTagInfo)
-                        dataDisplay.text = bytes.toHexString()
+                        if (decodedModel != null) {
+                            dataDisplay.text = formatModelForDisplay(decodedModel)
+                        } else {
+                            dataDisplay.text = bytes.toHexString()
+                        }
 
                         Toast.makeText(this@MainActivity, R.string.toast_file_loaded, Toast.LENGTH_SHORT).show()
                     }
@@ -140,14 +158,26 @@ class MainActivity : AppCompatActivity() {
             try {
                 val data = manager.readFullTag()
 
+                // Decode the data on IO thread
+                val decodedModel: OpenPrintTagModel? = if (data != null) {
+                    ensureMapsLoaded()
+                    val serializer = Serializer(classMap, typeMap, tagsMap, certsMap)
+                    serializer.deserialize(data)
+                } else null
+
                 withContext(Dispatchers.Main) {
                     progressBar.visibility = View.GONE
                     if (data != null) {
                         cachedTagData = data // Save to memory
                         statusText.text = getString(R.string.status_tag_read_success, data.size)
 
-                        // Convert to Hex and display
-                        dataDisplay.text = data.toHexString()
+                        // Display decoded data or fall back to hex
+                        if (decodedModel != null) {
+                            val formatted = formatModelForDisplay(decodedModel)
+                            dataDisplay.text = formatted
+                        } else {
+                            dataDisplay.text = data.toHexString()
+                        }
                     } else {
                         statusText.text = getString(R.string.status_read_failed)
                     }
@@ -348,5 +378,82 @@ class MainActivity : AppCompatActivity() {
             tvModeIndicator.text = getString(R.string.mode_read)
             tvModeIndicator.setBackgroundColor(ContextCompat.getColor(this, R.color.mode_read_background))
         }
+    }
+
+    private fun ensureMapsLoaded() {
+        if (mapsLoaded) return
+        classMap = loadMapFromYaml("data/material_class_enum.yaml", "name")
+        typeMap = loadMapFromYaml("data/material_type_enum.yaml", "abbreviation")
+        tagsMap = loadMapFromYaml("data/tags_enum.yaml", "name")
+        certsMap = loadMapFromYaml("data/material_certifications_enum.yaml", "display_name")
+        mapsLoaded = true
+    }
+
+    private fun loadMapFromYaml(fileName: String, labelKey: String): Map<String, Int> {
+        val resultMap = mutableMapOf<String, Int>()
+        try {
+            assets.open(fileName).use { inputStream ->
+                val yaml = org.yaml.snakeyaml.Yaml()
+                val rawData = yaml.load<List<Map<String, Any>>>(inputStream)
+                rawData?.forEach { entry ->
+                    val label = entry[labelKey]?.toString()
+                    val value = entry["key"]?.toString()?.toIntOrNull()
+                    if (label != null && value != null) {
+                        resultMap[label] = value
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error loading $fileName", e)
+        }
+        return resultMap
+    }
+
+    private fun formatModelForDisplay(model: OpenPrintTagModel): String {
+        val sb = StringBuilder()
+        val main = model.main
+
+        // Brand and Material
+        main.brand?.let { sb.appendLine("Brand: $it") }
+        main.materialType?.let { sb.appendLine("Material: $it") }
+        main.materialName?.let { sb.appendLine("Name: $it") }
+        main.materialClass.let { sb.appendLine("Class: $it") }
+
+        // Physical properties
+        main.density?.let { sb.appendLine("Density: $it g/cm³") }
+        main.nominalDiameter?.let { sb.appendLine("Diameter: $it mm") }
+        main.totalWeight?.let { sb.appendLine("Weight: $it g") }
+
+        // Temperatures
+        val temps = mutableListOf<String>()
+        if (main.minPrintTemp != null || main.maxPrintTemp != null) {
+            val min = main.minPrintTemp ?: "?"
+            val max = main.maxPrintTemp ?: "?"
+            temps.add("Print: $min-$max°C")
+        }
+        if (main.minBedTemp != null || main.maxBedTemp != null) {
+            val min = main.minBedTemp ?: "?"
+            val max = main.maxBedTemp ?: "?"
+            temps.add("Bed: $min-$max°C")
+        }
+        if (temps.isNotEmpty()) {
+            sb.appendLine("Temps: ${temps.joinToString(", ")}")
+        }
+
+        // Colors
+        main.primaryColor?.let { sb.appendLine("Color: $it") }
+
+        // Tags
+        if (main.materialTags.isNotEmpty()) {
+            sb.appendLine("Tags: ${main.materialTags.joinToString(", ")}")
+        }
+
+        // Date
+        main.manufacturedDate?.let { sb.appendLine("Manufactured: $it") }
+
+        // GTIN
+        main.gtin?.let { sb.appendLine("GTIN: $it") }
+
+        return sb.toString().ifEmpty { "No data decoded" }
     }
 }
