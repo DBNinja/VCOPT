@@ -260,6 +260,50 @@ class Serializer(
         return prefix + uriData
     }
 
+    /**
+     * Decode CBOR payload into model (used internally by parseNextNdefRecord)
+     */
+    private fun decodeCbor(payload: ByteArray) {
+        val model = OpenPrintTagModel()
+        decodeRegions(payload, model)
+        Log.d("Serializer", "Decoded CBOR: brand=${model.main.brand}, type=${model.main.materialType}")
+    }
+
+    /**
+     * Main deserialization entry point - parses raw tag data into a model
+     */
+    fun deserialize(data: ByteArray): OpenPrintTagModel? {
+        return try {
+            val model = OpenPrintTagModel()
+            // Skip NFC header bytes and find CBOR payload
+            val cborStart = findCborPayloadStart(data)
+            if (cborStart >= 0 && cborStart < data.size) {
+                val payload = data.copyOfRange(cborStart, data.size - 1) // Exclude terminator
+                decodeRegions(payload, model)
+            }
+            model
+        } catch (e: Exception) {
+            Log.e("Serializer", "Deserialize failed: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Find the start of CBOR payload by skipping NFC/NDEF headers
+     */
+    private fun findCborPayloadStart(data: ByteArray): Int {
+        if (data.size < 8) return -1
+        // Look for NDEF message start (0x03) after NFC header
+        for (i in 4 until minOf(data.size, 20)) {
+            if (data[i] == 0x03.toByte()) {
+                // Skip length bytes
+                val lengthByte = data.getOrNull(i + 1)?.toInt()?.and(0xFF) ?: return -1
+                return if (lengthByte == 0xFF) i + 4 else i + 2
+            }
+        }
+        return -1
+    }
+
     
 
     fun decodeRegions(payload: ByteArray, model: OpenPrintTagModel) {
@@ -315,11 +359,27 @@ class Serializer(
         // In Main, key 0 is instance_uuid (usually a 16-byte binary).
         // If key 0 is a small integer, it's likely Meta.
         val key0 = node.get(0)
-        return key0 != null && key0.isInt && key0.asInt() < 1000 
+        return key0 != null && key0.isInt && key0.asInt() < 1000
+    }
+
+    /**
+     * Decode MainRegion from a Jackson JsonNode (converts to bytes first)
+     */
+    private fun decodeMainRegion(node: JsonNode): MainRegion {
+        val bytes = mapper.writeValueAsBytes(node)
+        return decodeMainRegion(bytes) ?: MainRegion()
+    }
+
+    /**
+     * Decode AuxRegion from a Jackson JsonNode (converts to bytes first)
+     */
+    private fun decodeAuxRegion(node: JsonNode): AuxRegion {
+        val bytes = mapper.writeValueAsBytes(node)
+        return decodeAuxRegion(bytes) ?: AuxRegion()
     }
 
     @OptIn(ExperimentalSerializationApi::class)
-    fun decodeMainRegion(payload: ByteArray): OpenPrintTagModel.MainRegion? {
+    fun decodeMainRegion(payload: ByteArray): MainRegion? {
         return try {
             // 1. Setup CBOR decoder
             val cbor = Cbor {
@@ -330,7 +390,7 @@ class Serializer(
             // 2. Decode bytes into the MainRegion data class
             // Note: If your model properties are String but the tag has Int, 
             // this might need a custom serializer or use Jackson/Manual Map.
-            val mainRegion = cbor.decodeFromByteArray<OpenPrintTagModel.MainRegion>(payload)
+            val mainRegion = cbor.decodeFromByteArray<MainRegion>(payload)
 
             // 3. Post-process Enum values (Reverse Lookup)
             mainRegion.apply {
@@ -369,7 +429,7 @@ class Serializer(
     }
 
     @OptIn(ExperimentalSerializationApi::class)
-    fun decodeAuxRegion(payload: ByteArray): OpenPrintTagModel.AuxRegion? {
+    fun decodeAuxRegion(payload: ByteArray): AuxRegion? {
         return try {
             // 1. Setup the same CBOR configuration used for the Main region
             val cbor = Cbor {
@@ -379,7 +439,7 @@ class Serializer(
 
             // 2. Decode the sliced bytes directly into the AuxRegion data class
             // This will map Key "0" to consumedWeight and Key "1" to workgroup
-            val auxRegion = cbor.decodeFromByteArray<OpenPrintTagModel.AuxRegion>(payload)
+            val auxRegion = cbor.decodeFromByteArray<AuxRegion>(payload)
 
             // 3. Post-processing (if needed)
             // If you add fields in the future that use enums (like a 'status' field),
