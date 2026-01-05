@@ -309,25 +309,25 @@ class Serializer(
     fun decodeRegions(payload: ByteArray, model: OpenPrintTagModel) {
         val factory = CBORFactory()
         val parser = factory.createParser(payload)
-        
+
         try {
             // 1. Read the first CBOR Object
             // This is either the Meta Region OR the Main Region
-            val firstNode = mapper.readTree(parser) ?: return
+            val firstNode: JsonNode = mapper.readTree(parser) ?: return
 
             // Check if this first node is the META region
             // Meta region typically uses keys 0-3 for offsets/sizes
             // Main region uses keys 0-5+ for UUIDs, GTIN, etc.
             if (isMetaRegion(firstNode)) {
-                val mainOffset = firstNode.get(0)?.asInt() ?: 0
-                val mainSize = firstNode.get(1)?.asInt() ?: 0
-                val auxOffset = firstNode.get(2)?.asInt() ?: 0
-                val auxSize = firstNode.get(3)?.asInt() ?: 0
+                val mainOffset = firstNode.path(0).asInt(0)
+                val mainSize = firstNode.path(1).asInt(0)
+                val auxOffset = firstNode.path(2).asInt(0)
+                val auxSize = firstNode.path(3).asInt(0)
 
                 // Meta-Guided Slice
                 if (mainSize > 0) {
                     val mainBytes = payload.copyOfRange(mainOffset, mainOffset + mainSize)
-                    model.main = decodeMainRegion(mainBytes)
+                    model.main = decodeMainRegion(mainBytes) ?: MainRegion()
                 }
                 if (auxSize > 0) {
                     val auxBytes = payload.copyOfRange(auxOffset, auxOffset + auxSize)
@@ -335,12 +335,12 @@ class Serializer(
                 }
             } else {
                 // 2. Meta is OMITTED - First node is actually the Main Region
-                model.main = decodeMainRegion(firstNode)
-                
+                model.main = decodeMainRegionFromNode(firstNode)
+
                 // Try to read a second object (which would be the Aux Region)
-                val secondNode = mapper.readTree(parser)
+                val secondNode: JsonNode? = mapper.readTree(parser)
                 if (secondNode != null) {
-                    model.aux = decodeAuxRegion(secondNode)
+                    model.aux = decodeAuxRegionFromNode(secondNode)
                 }
             }
         } catch (e: Exception) {
@@ -365,7 +365,7 @@ class Serializer(
     /**
      * Decode MainRegion from a Jackson JsonNode (converts to bytes first)
      */
-    private fun decodeMainRegion(node: JsonNode): MainRegion {
+    private fun decodeMainRegionFromNode(node: JsonNode): MainRegion {
         val bytes = mapper.writeValueAsBytes(node)
         return decodeMainRegion(bytes) ?: MainRegion()
     }
@@ -373,7 +373,7 @@ class Serializer(
     /**
      * Decode AuxRegion from a Jackson JsonNode (converts to bytes first)
      */
-    private fun decodeAuxRegion(node: JsonNode): AuxRegion {
+    private fun decodeAuxRegionFromNode(node: JsonNode): AuxRegion {
         val bytes = mapper.writeValueAsBytes(node)
         return decodeAuxRegion(bytes) ?: AuxRegion()
     }

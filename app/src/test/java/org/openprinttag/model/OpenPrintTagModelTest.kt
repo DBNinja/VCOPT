@@ -8,7 +8,7 @@ class OpenPrintTagModelTest {
 
     @Test
     fun test_mainRegion_defaultValues() {
-        val mainRegion = OpenPrintTagModel.MainRegion()
+        val mainRegion = MainRegion()
 
         assertEquals("Default materialClass should be FFF", "FFF", mainRegion.materialClass)
         assertNull("Default materialType should be null", mainRegion.materialType)
@@ -25,7 +25,7 @@ class OpenPrintTagModelTest {
 
     @Test
     fun test_auxRegion_defaultValues() {
-        val auxRegion = OpenPrintTagModel.AuxRegion()
+        val auxRegion = AuxRegion()
 
         assertNull("Default consumedWeight should be null", auxRegion.consumedWeight)
         assertEquals("Default workgroup should be empty string", "", auxRegion.workgroup)
@@ -43,7 +43,7 @@ class OpenPrintTagModelTest {
 
     @Test
     fun test_urlRegion_defaultValues() {
-        val urlRegion = OpenPrintTagModel.UrlRegion()
+        val urlRegion = UrlRegion()
 
         assertEquals("Default URL should be openprinttag.org", "https://openprinttag.org", urlRegion.url)
         assertFalse("Default includeInTag should be false", urlRegion.includeInTag)
@@ -61,7 +61,7 @@ class OpenPrintTagModelTest {
 
     @Test
     fun test_mainRegion_setValues() {
-        val mainRegion = OpenPrintTagModel.MainRegion().apply {
+        val mainRegion = MainRegion().apply {
             materialClass = "SLA"
             materialType = "Standard Resin"
             brand = "TestBrand"
@@ -88,7 +88,7 @@ class OpenPrintTagModelTest {
 
     @Test
     fun test_mainRegion_weightFields() {
-        val mainRegion = OpenPrintTagModel.MainRegion().apply {
+        val mainRegion = MainRegion().apply {
             totalWeight = 1000
             ActTotalWeight = 980
         }
@@ -99,7 +99,7 @@ class OpenPrintTagModelTest {
 
     @Test
     fun test_mainRegion_temperatureFields() {
-        val mainRegion = OpenPrintTagModel.MainRegion().apply {
+        val mainRegion = MainRegion().apply {
             minPrintTemp = 190
             maxPrintTemp = 230
             preheatTemp = 210
@@ -122,7 +122,7 @@ class OpenPrintTagModelTest {
 
     @Test
     fun test_mainRegion_secondaryColors() {
-        val mainRegion = OpenPrintTagModel.MainRegion().apply {
+        val mainRegion = MainRegion().apply {
             primaryColor = "FF0000"
             secondary_color_0 = "00FF00"
             secondary_color_1 = "0000FF"
@@ -141,7 +141,7 @@ class OpenPrintTagModelTest {
 
     @Test
     fun test_auxRegion_setValues() {
-        val auxRegion = OpenPrintTagModel.AuxRegion().apply {
+        val auxRegion = AuxRegion().apply {
             consumedWeight = 250
             workgroup = "TestWorkgroup"
         }
@@ -181,7 +181,7 @@ class OpenPrintTagModelTest {
 
     @Test
     fun test_materialTags_modifiable() {
-        val mainRegion = OpenPrintTagModel.MainRegion()
+        val mainRegion = MainRegion()
         mainRegion.materialTags = listOf("tag1", "tag2")
 
         assertEquals(2, mainRegion.materialTags.size)
@@ -191,7 +191,7 @@ class OpenPrintTagModelTest {
 
     @Test
     fun test_certifications_modifiable() {
-        val mainRegion = OpenPrintTagModel.MainRegion()
+        val mainRegion = MainRegion()
         mainRegion.certifications = listOf("UL 2818", "UL 94 V0")
 
         assertEquals(2, mainRegion.certifications.size)

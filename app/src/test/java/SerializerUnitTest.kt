@@ -3,8 +3,8 @@ package org.openprinttag
 import org.junit.Assert.*
 import org.junit.Test
 import org.openprinttag.model.OpenPrintTagModel
-import org.openprinttag.model.OpenPrintTagModel.MainRegion
-import org.openprinttag.model.OpenPrintTagModel.AuxRegion
+import org.openprinttag.model.MainRegion
+import org.openprinttag.model.AuxRegion
 import org.openprinttag.model.Serializer
 
 class SerializerUnitTest {
