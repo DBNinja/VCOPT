@@ -16,16 +16,18 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-      - name: Set up Gradle cache
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Cache Android SDK
         uses: actions/cache@v4
         with:
           path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+            ~/.android/sdk
+            /usr/local/lib/android/sdk
+          key: ${{ runner.os }}-android-sdk-${{ hashFiles('app/build.gradle') }}
           restore-keys: |
-            ${{ runner.os }}-gradle-
+            ${{ runner.os }}-android-sdk-
       - name: Run unit tests
-        run: ./gradlew test --no-daemon
+        run: ./gradlew test
       - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug
