@@ -6,8 +6,8 @@
     <LinearLayout android:orientation="vertical" android:padding="16dp"
         android:layout_width="match_parent" android:layout_height="wrap_content">
 
-        <EditText android:id="@+id/getBrand" android:hint="Brand name" android:layout_width="match_parent" android:layout_height="wrap_content"/>
-        <EditText android:id="@+id/getMaterialName" android:hint="Material name" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <EditText android:id="@+id/getBrand" android:hint="@string/hint_brand_name" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <EditText android:id="@+id/getMaterialName" android:hint="@string/hint_material_name" android:layout_width="match_parent" android:layout_height="wrap_content"/>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -25,12 +25,12 @@
                 android:id="@+id/getColor"
                 android:layout_width="318dp"
                 android:layout_height="wrap_content"
-                android:hint="Primary color" />
+                android:hint="@string/hint_primary_color" />
         </LinearLayout>
 
-        <EditText android:id="@+id/getGtin" android:hint="GTIN" android:inputType="number" android:layout_width="match_parent" android:layout_height="wrap_content"/>
-        <EditText android:id="@+id/getMinTemp" android:hint="Min print temp (°C)" android:inputType="number" android:layout_width="match_parent" android:layout_height="wrap_content"/>
-        <EditText android:id="@+id/getMaxTemp" android:hint="Max print temp (°C)" android:inputType="number" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <EditText android:id="@+id/getGtin" android:hint="@string/hint_gtin" android:inputType="number" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <EditText android:id="@+id/getMinTemp" android:hint="@string/hint_min_print_temp" android:inputType="number" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <EditText android:id="@+id/getMaxTemp" android:hint="@string/hint_max_print_temp" android:inputType="number" android:layout_width="match_parent" android:layout_height="wrap_content"/>
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/layoutMaterialType"
@@ -38,7 +38,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:hint="Material Type">
+            android:hint="@string/hint_material_type">
 
             <com.google.android.material.textfield.MaterialAutoCompleteTextView
                 android:id="@+id/autoCompleteMaterialType"
@@ -56,7 +56,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:hint="Material Class">
+            android:hint="@string/hint_material_class">
 
             <com.google.android.material.textfield.MaterialAutoCompleteTextView
                 android:id="@+id/autoCompleteMaterialClass"
@@ -64,14 +64,14 @@
                 android:layout_height="wrap_content"
                 android:inputType="none" /> </com.google.android.material.textfield.TextInputLayout>
 
-        <Button android:id="@+id/btnGenerateBin" android:text="Generate .bin" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <Button android:id="@+id/btnGenerateBin" android:text="@string/btn_generate_bin" android:layout_width="match_parent" android:layout_height="wrap_content" />
 
 
         <Button
             android:id="@+id/setTagsButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Set Tags" />
+            android:text="@string/btn_set_tags" />
     </LinearLayout>
 
 </ScrollView>

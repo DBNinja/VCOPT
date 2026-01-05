@@ -9,13 +9,16 @@ import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.Button
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import java.io.File
 import org.openprinttag.app.R   // use the actual namespace where R was generated
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
@@ -29,9 +32,8 @@ class MainActivity : AppCompatActivity() {
     private var nfcAdapter: NfcAdapter? = null
     private lateinit var tvStatus: TextView
     private lateinit var tvTagInfo: TextView
-    private var loadedBin: ByteArray? = null
-    private var lastReadBin: ByteArray? = null
-    private var btnLaunchGenerator: Button? = null
+    private lateinit var tvModeIndicator: TextView
+    private lateinit var progressBar: ProgressBar
     private var cachedTagData: ByteArray? = null // This is your "Memory" storage
 
     // In your Activity
@@ -71,14 +73,14 @@ class MainActivity : AppCompatActivity() {
                 cachedTagData?.let { cachedTagData ->
                     // 'data' is the non-null ByteArray
                     tvTagInfo.text = cachedTagData.toHexString()
-                    tvStatus.text = "Status: New bin generated and cached"
+                    tvStatus.text = getString(R.string.status_new_bin_cached)
                 } ?: run {
-                    tvTagInfo.text = "Status: No data cached"
-                    tvStatus.text = "Status: No data cached"
+                    tvTagInfo.text = getString(R.string.status_no_data_cached)
+                    tvStatus.text = getString(R.string.status_no_data_cached)
                 }
                 //tvTagInfo.text = cachedTagData.toHexString()
                 //tvStatus.text = "Status: New bin generated and cached"
-                Toast.makeText(this, "Data ready to write!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.toast_data_ready_to_write, Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -99,7 +101,7 @@ class MainActivity : AppCompatActivity() {
                         val dataDisplay: TextView = findViewById(R.id.tvTagInfo)
                         dataDisplay.text = bytes.toHexString()
 
-                        Toast.makeText(this@MainActivity, "File loaded to memory!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, R.string.toast_file_loaded, Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
@@ -110,7 +112,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun triggerFileSave() {
         if (detectedTag == null) {
-            Toast.makeText(this, "No tag detected! Please tap a tag first.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.toast_no_tag_detected, Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -131,18 +133,31 @@ class MainActivity : AppCompatActivity() {
         val statusText: TextView = findViewById(R.id.tvStatus)
         val dataDisplay: TextView = findViewById(R.id.tvTagInfo)
 
+        // Show loading indicator
+        progressBar.visibility = View.VISIBLE
+
         lifecycleScope.launch(Dispatchers.IO) {
-            val data = manager.readFullTag()
+            try {
+                val data = manager.readFullTag()
 
-            withContext(Dispatchers.Main) {
-                if (data != null) {
-                    cachedTagData = data // Save to memory
-                    statusText.text = "Tag Read Successfully (${data.size} bytes)"
+                withContext(Dispatchers.Main) {
+                    progressBar.visibility = View.GONE
+                    if (data != null) {
+                        cachedTagData = data // Save to memory
+                        statusText.text = getString(R.string.status_tag_read_success, data.size)
 
-                    // Convert to Hex and display
-                    dataDisplay.text = data.toHexString()
-                } else {
-                    statusText.text = "Read Failed. Keep tag closer."
+                        // Convert to Hex and display
+                        dataDisplay.text = data.toHexString()
+                    } else {
+                        statusText.text = getString(R.string.status_read_failed)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("NFC", "Read failed", e)
+                withContext(Dispatchers.Main) {
+                    progressBar.visibility = View.GONE
+                    statusText.text = getString(R.string.error_nfc_operation_failed, e.message ?: "Unknown error")
+                    Toast.makeText(this@MainActivity, R.string.toast_write_failed, Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -165,7 +180,7 @@ class MainActivity : AppCompatActivity() {
                     outputStream.write(dataToSave)
                 }
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "Saved from memory!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity, R.string.toast_saved_from_memory, Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 Log.e("NFC", "Save failed", e)
@@ -201,16 +216,32 @@ class MainActivity : AppCompatActivity() {
             val tag: Tag? = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG)
 
             tag?.let {
+                // Store the detected tag for file save operations
+                detectedTag = it
+
                 if (isWriteMode) {
                     // EXECUTE WRITE
+                    progressBar.visibility = View.VISIBLE
                     lifecycleScope.launch {
-                        val success = writeMemoryToTag(it)
-                        if (success) {
-                            Toast.makeText(this@MainActivity, "Write Complete!", Toast.LENGTH_SHORT).show()
-                            isWriteMode = false // Turn off write mode after success
-                            // updateUi()
-                        } else {
-                            Toast.makeText(this@MainActivity, "Write Failed. Try again.", Toast.LENGTH_SHORT).show()
+                        try {
+                            val success = writeMemoryToTag(it)
+                            withContext(Dispatchers.Main) {
+                                progressBar.visibility = View.GONE
+                                if (success) {
+                                    Toast.makeText(this@MainActivity, R.string.toast_write_complete, Toast.LENGTH_SHORT).show()
+                                    isWriteMode = false // Turn off write mode after success
+                                    updateModeIndicator()
+                                } else {
+                                    Toast.makeText(this@MainActivity, R.string.toast_write_failed, Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e("NFC", "Write failed", e)
+                            withContext(Dispatchers.Main) {
+                                progressBar.visibility = View.GONE
+                                tvStatus.text = getString(R.string.error_nfc_operation_failed, e.message ?: "Unknown error")
+                                Toast.makeText(this@MainActivity, R.string.toast_write_failed, Toast.LENGTH_SHORT).show()
+                            }
                         }
                     }
                 } else {
@@ -232,16 +263,23 @@ class MainActivity : AppCompatActivity() {
             view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
             windowInsets
         }
-        //setContentView(R.layout.activity_main)
+
         // INITIALIZE ALL VIEWS FIRST
         tvStatus = findViewById(R.id.tvStatus)
         tvTagInfo = findViewById(R.id.tvTagInfo)
+        tvModeIndicator = findViewById(R.id.tvModeIndicator)
+        progressBar = findViewById(R.id.progressBar)
+
         val btnLaunchGenerator = requireNotNull(
             findViewById<Button>(R.id.btnLaunchGenerator)
         ) { "btnLaunchGenerator not found in activity_main.xml" }
 
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
-        //these two are in onCreate
+
+        // Check if NFC is available
+        if (nfcAdapter == null) {
+            Toast.makeText(this, R.string.error_nfc_not_available, Toast.LENGTH_LONG).show()
+        }
 
         btnLaunchGenerator.setOnClickListener {
             // Toast.makeText(this, "Works", Toast.LENGTH_LONG).show()
@@ -258,7 +296,7 @@ class MainActivity : AppCompatActivity() {
 
         saveButton.setOnClickListener {
             if (cachedTagData == null) {
-                Toast.makeText(this, "Read a tag first!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.toast_read_tag_first, Toast.LENGTH_SHORT).show()
             } else {
                 // This opens the system "Save As" screen
                 val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
@@ -285,26 +323,27 @@ class MainActivity : AppCompatActivity() {
 
         readTagButton.setOnClickListener {
            isWriteMode = false
-           Toast.makeText(this, "Ready to Read Tag", Toast.LENGTH_SHORT).show()
+           updateModeIndicator()
+           Toast.makeText(this, R.string.toast_ready_to_read, Toast.LENGTH_SHORT).show()
         }
 
 
         val writeTagButton: Button = findViewById(R.id.btnWriteTag)
 
-            writeTagButton.setOnClickListener {
+        writeTagButton.setOnClickListener {
             isWriteMode = true
-            Toast.makeText(this, "Ready to Write to Tag", Toast.LENGTH_SHORT).show()
+            updateModeIndicator()
+            Toast.makeText(this, R.string.toast_ready_to_write, Toast.LENGTH_SHORT).show()
         }
+    }
 
-
-        fun onNewIntent(intent: Intent) {
-            super.onNewIntent(intent)
-            if (NfcAdapter.ACTION_TAG_DISCOVERED == intent.action ||
-                NfcAdapter.ACTION_TECH_DISCOVERED == intent.action) {
-
-                detectedTag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG)
-                Toast.makeText(this, "Tag Ready to Read", Toast.LENGTH_SHORT).show()
-            }
+    private fun updateModeIndicator() {
+        if (isWriteMode) {
+            tvModeIndicator.text = getString(R.string.mode_write)
+            tvModeIndicator.setBackgroundColor(ContextCompat.getColor(this, R.color.mode_write_background))
+        } else {
+            tvModeIndicator.text = getString(R.string.mode_read)
+            tvModeIndicator.setBackgroundColor(ContextCompat.getColor(this, R.color.mode_read_background))
         }
     }
 }

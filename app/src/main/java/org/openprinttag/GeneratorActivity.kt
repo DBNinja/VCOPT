@@ -73,12 +73,6 @@ class HintSpinnerAdapter(
         return ContextCompat.getColor(context, typedValue.resourceId)
     }
 
-    /*
-    override fun isEnabled(position: Int): Boolean {
-        // Disable the first item (the hint) so it's not clickable
-        return position != 0
-    } */
-
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
         val view = super.getView(position, convertView, parent) as TextView
         // Closed state color
@@ -204,32 +198,6 @@ class GeneratorActivity : AppCompatActivity() {
 
 
 
-    class HintSpinnerAdapter(
-        context: Context,
-        resource: Int,
-        objects: List<String>
-    ) : ArrayAdapter<String>(context, resource, objects) {
-
-        /*
-        override fun isEnabled(position: Int): Boolean {
-            // Disable the first item (the hint) so it's not clickable
-            return position != 0
-        }
-        */
-
-        override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
-            val view = super.getDropDownView(position, convertView, parent)
-            val tv = view as TextView
-            if (position == 0) {
-                // Set the hint text color to gray
-                tv.setTextColor(Color.GRAY)
-            } else {
-                // Set regular items to black (or your theme color)
-                tv.setTextColor(Color.BLACK)
-            }
-            return view
-        }
-    }
     private fun loadMaterialTypesFromYaml(assetPath: String, fieldName: String): List<String> {
         val names = mutableListOf<String>()
         try {
@@ -295,74 +263,6 @@ class GeneratorActivity : AppCompatActivity() {
         }
         return resultMap
     }
-/*
-    class OptionsAdapter(
-        private var options: List<OptionEntry>,
-        private val selectionManager: SelectionManager,
-        private val onSelectionChanged: (Set<Int>, List<OptionEntry>) -> Unit
-    ) : RecyclerView.Adapter<OptionsAdapter.OptionViewHolder>() {
-
-        private var selectedKeys = mutableSetOf<Int>()
-        private val TYPE_HEADER = 0
-        private val TYPE_TAG = 1
-
-
-        override fun getItemViewType(position: Int): Int {
-            return when (options[position]) {
-                is TagDisplayItem.Header -> TYPE_HEADER
-                is TagDisplayItem.TagRow -> TYPE_TAG
-            }
-        }
-        // 1. Fixed onCreateViewHolder: Ensure ViewGroup and Int are explicit
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-            val inflater = LayoutInflater.from(parent.context)
-            return if (viewType == TYPE_HEADER) {
-                // Reuse the TextView from your category_select.xml or create a small header layout
-                val view = inflater.inflate(R.layout.tag_category_header, parent, false)
-                HeaderViewHolder(view)
-            } else {
-                val view = inflater.inflate(R.layout.tag_selectable_option, parent, false)
-                TagViewHolder(view)
-            }
-        }
-
-        // 2. Fixed onBindViewHolder: Matches the ViewHolder type exactly
-        override fun onBindViewHolder(holder: OptionViewHolder, position: Int) {
-            holder.bind(options[position])
-        }
-
-        override fun getItemCount(): Int = options.size
-
-
-        inner class OptionViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val checkbox: CheckBox = view.findViewById(R.id.option_checkbox)
-            val title: TextView = view.findViewById(R.id.option_title)
-            val description: TextView = view.findViewById(R.id.option_description)
-
-            fun bind(option: OptionEntry) {
-                title.text = option.display_name
-                description.text = option.description
-
-                checkbox.setOnCheckedChangeListener(null)
-                checkbox.isChecked = selectedKeys.contains(option.key)
-
-                checkbox.setOnCheckedChangeListener { _, isChecked ->
-                    if (isChecked) {
-                        val update = selectionManager.onOptionSelected(option.key, selectedKeys)
-                        selectedKeys.addAll(update.newSelectedKeys)
-                        onSelectionChanged(selectedKeys, update.suggestions)
-                        notifyDataSetChanged()
-                    } else {
-                        selectedKeys.remove(option.key)
-                        onSelectionChanged(selectedKeys, emptyList())
-                    }
-                }
-            }
-        }
-    }
-
-    */
-
     private fun preFillUI(model: OpenPrintTagModel) {
         // Basic Fields
         val main = model.main
@@ -623,7 +523,6 @@ class GeneratorActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        //setContentView(R.layout.activity_generator)
         // Inflate and set the root
         binding = ActivityGeneratorBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -679,6 +578,7 @@ class GeneratorActivity : AppCompatActivity() {
             model.main.minPrintTemp = getMin.text.toString().toIntOrNull()
             model.main.maxPrintTemp = getMax.text.toString().toIntOrNull()
             model.main.materialType = autoCompleteMaterialType.text.toString()
+            model.main.materialClass = autoCompleteMaterialClass.text.toString().ifBlank { "FFF" }
             model.main.materialTags = currentSelectedKeys.map { key ->
                 allOptions.find { it.key == key }?.name ?: ""
             }
@@ -697,38 +597,14 @@ class GeneratorActivity : AppCompatActivity() {
             resultIntent.putExtra("GEN_BIN_DATA", bin)
             setResult(Activity.RESULT_OK, resultIntent)
 
-            /*
-            val f = File(filesDir, "openprinttag.bin")
-            FileOutputStream(f).use { it.write(bin) }
-            Toast.makeText(this, "Generated ${bin.size} bytes -> ${f.absolutePath}", Toast.LENGTH_LONG).show()
-            val out = Intent()
-            out.putExtra("bin_path", f.absolutePath)
-
-            setResult(Activity.RESULT_OK, out)
-            */
-
             finish()
         }
-
-
-        //val spinnerMaterialType: Spinner = findViewById(R.id.spinnerMaterialType)
 
 
         // 1. Load the abbreviations from material_type_enum.yaml
         val materialTypes = loadMaterialTypesFromYaml("data/material_type_enum.yaml", "abbreviation").toMutableList()
 
-        // 2. Add your prompt to the very first position (index 0)
-        //materialTypes.add(0, "Select Material Type...")
-
-        // 2. Create the Adapter
-        // 2. Use the Custom Hint Adapter
-        /*
-        val adapter = HintSpinnerAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            materialTypes
-        )
-        */
+        // Create the Adapter
         val adapter = ArrayAdapter(this, R.layout.list_item, materialTypes)
         autoCompleteMaterialType.setAdapter(adapter)
         autoCompleteMaterialType.setOnClickListener {
@@ -762,15 +638,6 @@ class GeneratorActivity : AppCompatActivity() {
                 model.main.materialType = input
             }
         }
-
-
-        /*
-        // 3. Set the dropdown layout style
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-
-        // 4. Attach to Spinner
-        spinnerMaterialType.adapter = adapter
-        */
 
         val colorButton = findViewById<Button>(R.id.colorButton)
         colorButton.setOnClickListener {
@@ -820,27 +687,4 @@ class GeneratorActivity : AppCompatActivity() {
             tagsMap.keys.toList()
         )
     }
-
-
-        /*
-        val colorPickerView = findViewById<com.skydoves.colorpickerview.ColorPickerView>(R.id.colorPickerView)
-        colorPickerView.setColorListener(ColorEnvelopeListener { envelope, fromUser ->
-            val color = envelope.color // Int color
-            val hex = "%06X".format(0xFFFFFF and color)
-
-            // colorButton.backgroundTintList =  ColorStateList.valueOf(Color.parseColor(hex))
-            colorButton.backgroundTintList = ColorStateList.valueOf(color)
-            getColor.setText(hex)
-
-            colorPickerView.setOnTouchListener { v, event ->
-                // Tell the ScrollView to stop stealing touch events while we pick a color
-                v.parent.requestDisallowInterceptTouchEvent(true)
-                false
-
-            }
-
-        }) */
-
-    // Setup the Adapters
 }
-

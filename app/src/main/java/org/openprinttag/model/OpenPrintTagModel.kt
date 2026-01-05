@@ -11,29 +11,6 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
-/*
-data class OpenPrintTagModel(
-    var materialClass: String = "FFF",
-    var materialType: String? = "PLA",
-    var brand: String? = "",
-    var materialName: String? = "",
-    var primaryColor: String? = "",
-    var density: Float? = null,
-    var gtin: Int? = null,
-    var manufacturedDate: LocalDate? = null,
-    var countryOfOrigin: String? = null,
-    var minPrintTemp: Int? = null,
-    var maxPrintTemp: Int? = null,
-    var preheatTemp: Int? = null,
-    var minBedTemp: Int? = null,
-    var maxBedTemp: Int? = null,
-    var materialTags: List<String> = emptyList(),
-    var certifications: List<String> = emptyList(),
-    var includeUrlRecord: Boolean = false,
-    var tagUrl: String? = null
-)*/
-
-
 
 @Serializable
 data class OpenPrintTagModel(
@@ -100,8 +77,8 @@ data class MainRegion(
     @SerialName("12") var nominalDiameter: Float? = null,
 
     // Key 16: Total Weight / Net Weight (g)
-    @SerialName("16") var totalWeight: int? = null,
-    @SerialName("17") var ActTotalWeight: int? = null,
+    @SerialName("16") var totalWeight: Int? = null,
+    @SerialName("17") var ActTotalWeight: Int? = null,
     
     
     // Key 14: Date. CBOR expects epoch seconds
@@ -129,7 +106,7 @@ data class MainRegion(
 
     @kotlinx.serialization.Serializable
     data class AuxRegion(
-        @SerialName("0") var consumedWeight: int? = null,
+        @SerialName("0") var consumedWeight: Int? = null,
         @SerialName("1") var workgroup: String? = ""
         // ... move other aux_fields.yaml keys here
     )

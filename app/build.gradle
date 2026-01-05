@@ -13,8 +13,8 @@ android {
     compileSdk 35
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_21
-        targetCompatibility JavaVersion.VERSION_21
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
         coreLibraryDesugaringEnabled true
     }
 
@@ -34,17 +34,18 @@ android {
         applicationId "org.openprinttag.app"
         minSdk 25
         targetSdk 35
+        versionCode 1
+        versionName "0.1.0"
     }
     // 2. Add this block to force Kotlin to match Java (outside the android block)
     kotlin {
-        jvmToolchain(21)
+        jvmToolchain(17)
     }
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.debug
         }
     }
     buildFeatures {
@@ -72,25 +73,11 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.18.2'
     implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.18.2'
-/*
-    implementation 'androidx.compose.runtime:runtime:1.10.0'
-    implementation 'com.google.android.material:material:1.13.0'
-    implementation 'com.android.identity:identity-jvm:202411.1'
-    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.5" // or latest
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.0.0"
-    implementation 'androidx.appcompat:appcompat:1.7.1'
-    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
-    implementation("org.yaml:snakeyaml:2.5")
-    implementation("com.github.skydoves:colorpickerview:2.3.0")
-    implementation("com.github.skydoves:colorpicker-compose:1.1.3")
+
+    // Test dependencies
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test:runner:1.7.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.20.1'
-    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.20.1'
-    implementation "org.jetbrains.kotlinx:kotlinx-serialization-core:1.9.0"
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
-*/
 }
 
 configurations.configureEach {

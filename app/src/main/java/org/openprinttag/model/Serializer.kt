@@ -3,6 +3,7 @@
 package org.openprinttag.model
 
 import android.util.Log
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import org.openprinttag.util.ByteUtils
@@ -316,49 +317,6 @@ class Serializer(
         val key0 = node.get(0)
         return key0 != null && key0.isInt && key0.asInt() < 1000 
     }
-
-    /*
-    fun decodeMainRegion(payload: ByteArray): OpenPrintTagModel? {
-        return try {
-            // 1. Define a non-strict CBOR instance to ignore keys not in the model
-            //val cbor = com.android.identity.cbor.Cbor.decode(payload)
-            @OptIn(ExperimentalSerializationApi::class)
-            val cbor = Cbor {
-                ignoreUnknownKeys = true
-                encodeDefaults = false
-            }
-
-            // 2. Decode the raw bytes into the model using the @SerialName mapping
-            var model: OpenPrintTagModel.main = cbor.decodeFromByteArray<OpenPrintTagModel>(payload)
-
-            // 3. Post-process Enum values (Converting IDs back to human-readable strings)
-            // Note: This assumes your model stores the string representation 
-            // while the CBOR uses the Integer 'key' from your YAMLs.
-            
-            model.apply {
-                // Reverse lookup for Material Type
-                // typeMap is Map<String, Int>, we need the key for the value
-                main.materialType = typeMap.entries.find { it.value.toString() == main.materialType }?.key ?: main.materialType
-                
-                // Reverse lookup for Material Class
-                main.materialClass = classMap.entries.find { it.value.toString() == main.materialClass }?.key ?: main.materialClass
-                
-                // Handle multi-select tags
-                main.materialTags = tagsMap.map { tagId ->
-                    //(tagsMap.entries.find { it.value.toString() == tagId }?.key as? String) ?: tagId.toString()
-                    val foundKey = tagsMap.entries.find { it.value.toString() == tagId.toString() }?.key
-                    foundKey?.toString() ?: tagId.toString()
-                    //tagsMap.entries.find { it.value.toString() == tagId }?.key ?: tagId
-                }
-            }
-            
-            
-        } catch (e: Exception) {
-            Log.e("Serializer", "Failed to decode CBOR: ${e.message}")
-            null
-        }
-    }
-    */
 
     @OptIn(ExperimentalSerializationApi::class)
     fun decodeMainRegion(payload: ByteArray): OpenPrintTagModel.MainRegion? {

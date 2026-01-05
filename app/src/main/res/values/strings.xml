@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App name -->
+    <string name="app_name">OpenPrintTag Writer</string>
+
+    <!-- MainActivity buttons -->
+    <string name="btn_open_generator">Open generator</string>
+    <string name="btn_load_bin">Load .bin file (generator output)</string>
+    <string name="btn_save_bin">Save last-read as .bin</string>
+    <string name="btn_read_tag">Read tag</string>
+    <string name="btn_write_tag">Write tag</string>
+
+    <!-- MainActivity status messages -->
+    <string name="status_idle">Status: Idle</string>
+    <string name="status_new_bin_cached">Status: New bin generated and cached</string>
+    <string name="status_no_data_cached">Status: No data cached</string>
+    <string name="status_tag_read_success">Tag Read Successfully (%1$d bytes)</string>
+    <string name="status_read_failed">Read Failed. Keep tag closer.</string>
+
+    <!-- MainActivity tag info -->
+    <string name="tag_info_none">Tag info: none</string>
+
+    <!-- MainActivity toast messages -->
+    <string name="toast_data_ready_to_write">Data ready to write!</string>
+    <string name="toast_write_complete">Write Complete!</string>
+    <string name="toast_write_failed">Write Failed. Try again.</string>
+    <string name="toast_file_loaded">File loaded to memory!</string>
+    <string name="toast_ready_to_read">Ready to Read Tag</string>
+    <string name="toast_ready_to_write">Ready to Write to Tag</string>
+    <string name="toast_no_tag_detected">No tag detected! Please tap a tag first.</string>
+    <string name="toast_read_tag_first">Read a tag first!</string>
+    <string name="toast_saved_from_memory">Saved from memory!</string>
+    <string name="toast_tag_ready_to_read">Tag Ready to Read</string>
+
+    <!-- GeneratorActivity hints -->
+    <string name="hint_brand_name">Brand name</string>
+    <string name="hint_material_name">Material name</string>
+    <string name="hint_primary_color">Primary color</string>
+    <string name="hint_gtin">GTIN</string>
+    <string name="hint_min_print_temp">Min print temp (°C)</string>
+    <string name="hint_max_print_temp">Max print temp (°C)</string>
+    <string name="hint_material_type">Material Type</string>
+    <string name="hint_material_class">Material Class</string>
+
+    <!-- GeneratorActivity buttons -->
+    <string name="btn_generate_bin">Generate .bin</string>
+    <string name="btn_set_tags">Set Tags</string>
+
+    <!-- GeneratorActivity messages -->
+    <string name="error_unknown_material">Unknown Material</string>
+    <string name="toast_consider_also">Consider also: %1$s</string>
+    <string name="toast_failed_load_tags">Failed to load tags from assets</string>
+    <string name="dialog_title_material_tags">Material Tags</string>
+    <string name="dialog_btn_done">Done</string>
+
+    <!-- Color picker -->
+    <string name="dialog_choose_color">Choose Color</string>
+    <string name="dialog_btn_confirm">Confirm</string>
+    <string name="dialog_btn_cancel">Cancel</string>
+
+    <!-- Mode indicator -->
+    <string name="mode_read">READ MODE - Tap tag to read</string>
+    <string name="mode_write">WRITE MODE - Tap tag to write</string>
+
+    <!-- Error messages -->
+    <string name="error_nfc_operation_failed">NFC operation failed: %1$s</string>
+    <string name="error_nfc_not_available">NFC is not available on this device</string>
+</resources>
