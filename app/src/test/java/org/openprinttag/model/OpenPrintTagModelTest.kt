@@ -12,7 +12,7 @@ class OpenPrintTagModelTest {
 
         assertEquals("Default materialClass should be FFF", "FFF", mainRegion.materialClass)
         assertNull("Default materialType should be null", mainRegion.materialType)
-        assertNull("Default brand should be null", mainRegion.brand)
+        assertNull("Default brandName should be null", mainRegion.brandName)
         assertNull("Default materialName should be null", mainRegion.materialName)
         assertNull("Default primaryColor should be null", mainRegion.primaryColor)
         assertNull("Default density should be null", mainRegion.density)
@@ -28,7 +28,9 @@ class OpenPrintTagModelTest {
         val auxRegion = AuxRegion()
 
         assertNull("Default consumedWeight should be null", auxRegion.consumedWeight)
-        assertEquals("Default workgroup should be empty string", "", auxRegion.workgroup)
+        assertNull("Default workgroup should be null", auxRegion.workgroup)
+        assertNull("Default generalPurposeRangeUser should be null", auxRegion.generalPurposeRangeUser)
+        assertNull("Default lastStirTime should be null", auxRegion.lastStirTime)
     }
 
     @Test
@@ -64,7 +66,7 @@ class OpenPrintTagModelTest {
         val mainRegion = MainRegion().apply {
             materialClass = "SLA"
             materialType = "Standard Resin"
-            brand = "TestBrand"
+            brandName = "TestBrand"
             materialName = "Test Resin"
             primaryColor = "FF0000"
             density = 1.1f
@@ -76,7 +78,7 @@ class OpenPrintTagModelTest {
 
         assertEquals("SLA", mainRegion.materialClass)
         assertEquals("Standard Resin", mainRegion.materialType)
-        assertEquals("TestBrand", mainRegion.brand)
+        assertEquals("TestBrand", mainRegion.brandName)
         assertEquals("Test Resin", mainRegion.materialName)
         assertEquals("FF0000", mainRegion.primaryColor)
         assertEquals(1.1f, mainRegion.density!!, 0.001f)
@@ -89,12 +91,14 @@ class OpenPrintTagModelTest {
     @Test
     fun test_mainRegion_weightFields() {
         val mainRegion = MainRegion().apply {
-            totalWeight = 1000
-            ActTotalWeight = 980
+            nominalNettoFullWeight = 1000f
+            actualNettoFullWeight = 980f
+            emptyContainerWeight = 200f
         }
 
-        assertEquals("Total weight should be set", 1000, mainRegion.totalWeight)
-        assertEquals("Actual total weight should be set", 980, mainRegion.ActTotalWeight)
+        assertEquals("Nominal weight should be set", 1000f, mainRegion.nominalNettoFullWeight!!, 0.01f)
+        assertEquals("Actual weight should be set", 980f, mainRegion.actualNettoFullWeight!!, 0.01f)
+        assertEquals("Empty container weight should be set", 200f, mainRegion.emptyContainerWeight!!, 0.01f)
     }
 
     @Test
@@ -107,7 +111,7 @@ class OpenPrintTagModelTest {
             maxBedTemp = 70
             minChamberTemp = 40
             maxChamberTemp = 60
-            idealChamberTemp = 50
+            chamberTemperature = 50
         }
 
         assertEquals(190, mainRegion.minPrintTemp)
@@ -117,49 +121,132 @@ class OpenPrintTagModelTest {
         assertEquals(70, mainRegion.maxBedTemp)
         assertEquals(40, mainRegion.minChamberTemp)
         assertEquals(60, mainRegion.maxChamberTemp)
-        assertEquals(50, mainRegion.idealChamberTemp)
+        assertEquals(50, mainRegion.chamberTemperature)
     }
 
     @Test
     fun test_mainRegion_secondaryColors() {
         val mainRegion = MainRegion().apply {
             primaryColor = "FF0000"
-            secondary_color_0 = "00FF00"
-            secondary_color_1 = "0000FF"
-            secondary_color_2 = "FFFF00"
-            secondary_color_3 = "FF00FF"
-            secondary_color_4 = "00FFFF"
+            secondaryColor0 = "00FF00"
+            secondaryColor1 = "0000FF"
+            secondaryColor2 = "FFFF00"
+            secondaryColor3 = "FF00FF"
+            secondaryColor4 = "00FFFF"
         }
 
         assertEquals("FF0000", mainRegion.primaryColor)
-        assertEquals("00FF00", mainRegion.secondary_color_0)
-        assertEquals("0000FF", mainRegion.secondary_color_1)
-        assertEquals("FFFF00", mainRegion.secondary_color_2)
-        assertEquals("FF00FF", mainRegion.secondary_color_3)
-        assertEquals("00FFFF", mainRegion.secondary_color_4)
+        assertEquals("00FF00", mainRegion.secondaryColor0)
+        assertEquals("0000FF", mainRegion.secondaryColor1)
+        assertEquals("FFFF00", mainRegion.secondaryColor2)
+        assertEquals("FF00FF", mainRegion.secondaryColor3)
+        assertEquals("00FFFF", mainRegion.secondaryColor4)
+    }
+
+    @Test
+    fun test_mainRegion_physicalProperties() {
+        val mainRegion = MainRegion().apply {
+            filamentDiameter = 1.75f
+            density = 1.24f
+            shoreHardnessA = 95
+            shoreHardnessD = 45
+            minNozzleDiameter = 0.4f
+        }
+
+        assertEquals(1.75f, mainRegion.filamentDiameter!!, 0.01f)
+        assertEquals(1.24f, mainRegion.density!!, 0.01f)
+        assertEquals(95, mainRegion.shoreHardnessA)
+        assertEquals(45, mainRegion.shoreHardnessD)
+        assertEquals(0.4f, mainRegion.minNozzleDiameter!!, 0.01f)
+    }
+
+    @Test
+    fun test_mainRegion_containerDimensions() {
+        val mainRegion = MainRegion().apply {
+            containerWidth = 53
+            containerOuterDiameter = 200
+            containerInnerDiameter = 55
+            containerHoleDiameter = 52
+        }
+
+        assertEquals(53, mainRegion.containerWidth)
+        assertEquals(200, mainRegion.containerOuterDiameter)
+        assertEquals(55, mainRegion.containerInnerDiameter)
+        assertEquals(52, mainRegion.containerHoleDiameter)
+    }
+
+    @Test
+    fun test_mainRegion_slaFields() {
+        val mainRegion = MainRegion().apply {
+            materialClass = "SLA"
+            viscosity18c = 100f
+            viscosity25c = 80f
+            viscosity40c = 50f
+            viscosity60c = 30f
+            containerVolumetricCapacity = 1000f
+            cureWavelength = 405
+        }
+
+        assertEquals("SLA", mainRegion.materialClass)
+        assertEquals(100f, mainRegion.viscosity18c!!, 0.01f)
+        assertEquals(80f, mainRegion.viscosity25c!!, 0.01f)
+        assertEquals(50f, mainRegion.viscosity40c!!, 0.01f)
+        assertEquals(30f, mainRegion.viscosity60c!!, 0.01f)
+        assertEquals(1000f, mainRegion.containerVolumetricCapacity!!, 0.01f)
+        assertEquals(405, mainRegion.cureWavelength)
+    }
+
+    @Test
+    fun test_mainRegion_filamentLength() {
+        val mainRegion = MainRegion().apply {
+            nominalFullLength = 330000f  // mm (330m)
+            actualFullLength = 332000f   // mm
+        }
+
+        assertEquals(330000f, mainRegion.nominalFullLength!!, 0.01f)
+        assertEquals(332000f, mainRegion.actualFullLength!!, 0.01f)
+    }
+
+    @Test
+    fun test_mainRegion_uuids() {
+        val mainRegion = MainRegion().apply {
+            instanceUuid = "00112233445566778899AABBCCDDEEFF"
+            packageUuid = "11223344556677889900AABBCCDDEEFF"
+            materialUuid = "22334455667788990011AABBCCDDEEFF"
+            brandUuid = "33445566778899001122AABBCCDDEEFF"
+        }
+
+        assertEquals("00112233445566778899AABBCCDDEEFF", mainRegion.instanceUuid)
+        assertEquals("11223344556677889900AABBCCDDEEFF", mainRegion.packageUuid)
+        assertEquals("22334455667788990011AABBCCDDEEFF", mainRegion.materialUuid)
+        assertEquals("33445566778899001122AABBCCDDEEFF", mainRegion.brandUuid)
     }
 
     @Test
     fun test_auxRegion_setValues() {
         val auxRegion = AuxRegion().apply {
-            consumedWeight = 250
+            consumedWeight = 250f
             workgroup = "TestWorkgroup"
+            generalPurposeRangeUser = "Custom data"
+            lastStirTime = LocalDate.of(2024, 1, 15)
         }
 
-        assertEquals(250, auxRegion.consumedWeight)
+        assertEquals(250f, auxRegion.consumedWeight!!, 0.01f)
         assertEquals("TestWorkgroup", auxRegion.workgroup)
+        assertEquals("Custom data", auxRegion.generalPurposeRangeUser)
+        assertEquals(LocalDate.of(2024, 1, 15), auxRegion.lastStirTime)
     }
 
     @Test
     fun test_model_copyValues() {
         val original = OpenPrintTagModel().apply {
-            main.brand = "OriginalBrand"
+            main.brandName = "OriginalBrand"
             main.materialType = "PLA"
         }
 
         val copy = original.copy()
 
-        assertEquals("Copied brand should match", original.main.brand, copy.main.brand)
+        assertEquals("Copied brandName should match", original.main.brandName, copy.main.brandName)
         assertEquals("Copied materialType should match", original.main.materialType, copy.main.materialType)
     }
 
@@ -197,5 +284,16 @@ class OpenPrintTagModelTest {
         assertEquals(2, mainRegion.certifications.size)
         assertTrue(mainRegion.certifications.contains("UL 2818"))
         assertTrue(mainRegion.certifications.contains("UL 94 V0"))
+    }
+
+    @Test
+    fun test_mainRegion_dates() {
+        val mainRegion = MainRegion().apply {
+            manufacturedDate = LocalDate.of(2024, 6, 15)
+            expirationDate = LocalDate.of(2026, 6, 15)
+        }
+
+        assertEquals(LocalDate.of(2024, 6, 15), mainRegion.manufacturedDate)
+        assertEquals(LocalDate.of(2026, 6, 15), mainRegion.expirationDate)
     }
 }

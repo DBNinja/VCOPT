@@ -125,45 +125,126 @@ class Serializer(
     private fun encodeMain(m: OpenPrintTagModel): ByteArray {
         val data = mutableMapOf<Int, Any>()
 
-        // Use .let { ... } to only add to the map if the value is not null
+        // === UUIDs (Keys 0-3) ===
+        m.main.instanceUuid?.takeIf { it.isNotBlank() }?.let { data[0] = it }
+        m.main.packageUuid?.takeIf { it.isNotBlank() }?.let { data[1] = it }
+        m.main.materialUuid?.takeIf { it.isNotBlank() }?.let { data[2] = it }
+        m.main.brandUuid?.takeIf { it.isNotBlank() }?.let { data[3] = it }
+
+        // === GTIN (Key 4) ===
         m.main.gtin?.toLongOrNull()?.let { data[4] = it }
-        
+
+        // === Brand-Specific IDs (Keys 5-7) ===
+        m.main.brandSpecificInstanceId?.takeIf { it.isNotBlank() }?.let { data[5] = it }
+        m.main.brandSpecificPackageId?.takeIf { it.isNotBlank() }?.let { data[6] = it }
+        m.main.brandSpecificMaterialId?.takeIf { it.isNotBlank() }?.let { data[7] = it }
+
+        // === Material Classification (Keys 8-11) ===
         classMap[m.main.materialClass]?.let { data[8] = it }
-        
-        // Safety check: only encode type if it exists in your YAML map
-        // Only map if the string isn't the prompt
+
         val typeStr = m.main.materialType
         if (typeStr != null && typeStr != "Select Material Type...") {
             typeMap[typeStr]?.let { data[9] = it }
         }
-    
-        m.main.materialName?.takeIf { it.isNotBlank() }?.let { data[10] = it }
-        m.main.brand?.takeIf { it.isNotBlank() }?.let { data[11] = it }
-        m.main.density?.let { data[29] = it }
 
-        // Use your new helper for the timestamp
-        m.main.manufacturedDate?.let { 
-            // This code only runs if manufacturedDate is NOT null
+        m.main.materialName?.takeIf { it.isNotBlank() }?.let { data[10] = it }
+        m.main.brandName?.takeIf { it.isNotBlank() }?.let { data[11] = it }
+
+        // === Write Protection (Key 13) ===
+        // Note: could add writeProtectionMap lookup here if needed
+        m.main.writeProtection?.toIntOrNull()?.let { data[13] = it }
+
+        // === Dates (Keys 14, 15) ===
+        m.main.manufacturedDate?.let {
             data[14] = getDateEpoch(m.main.manufacturedDate)!!
         }
+        m.main.expirationDate?.let {
+            data[15] = getDateEpoch(m.main.expirationDate)!!
+        }
 
-        // Multi-select tags
+        // === Weights (Keys 16-18) ===
+        m.main.nominalNettoFullWeight?.let { data[16] = it }
+        m.main.actualNettoFullWeight?.let { data[17] = it }
+        m.main.emptyContainerWeight?.let { data[18] = it }
+
+        // === Colors (Keys 19-24) ===
+        m.main.primaryColor?.takeIf { it.isNotBlank() }?.let { data[19] = it }
+        m.main.secondaryColor0?.takeIf { it.isNotBlank() }?.let { data[20] = it }
+        m.main.secondaryColor1?.takeIf { it.isNotBlank() }?.let { data[21] = it }
+        m.main.secondaryColor2?.takeIf { it.isNotBlank() }?.let { data[22] = it }
+        m.main.secondaryColor3?.takeIf { it.isNotBlank() }?.let { data[23] = it }
+        m.main.secondaryColor4?.takeIf { it.isNotBlank() }?.let { data[24] = it }
+
+        // === Optical Properties (Key 27) ===
+        m.main.transmissionDistance?.let { data[27] = it }
+
+        // === Tags (Key 28) ===
         if (m.main.materialTags.isNotEmpty()) {
             val tagIds = m.main.materialTags.mapNotNull { tagsMap[it] }
             if (tagIds.isNotEmpty()) data[28] = tagIds
         }
 
-        // Temperatures
+        // === Physical Properties (Keys 29-33) ===
+        m.main.density?.let { data[29] = it }
+        m.main.filamentDiameter?.let { data[30] = it }  // KEY 30! (not deprecated key 12)
+        m.main.shoreHardnessA?.let { data[31] = it }
+        m.main.shoreHardnessD?.let { data[32] = it }
+        m.main.minNozzleDiameter?.let { data[33] = it }
+
+        // === Temperatures (Keys 34-41) ===
         m.main.minPrintTemp?.let { data[34] = it }
         m.main.maxPrintTemp?.let { data[35] = it }
+        m.main.preheatTemp?.let { data[36] = it }
+        m.main.minBedTemp?.let { data[37] = it }
+        m.main.maxBedTemp?.let { data[38] = it }
+        m.main.minChamberTemp?.let { data[39] = it }
+        m.main.maxChamberTemp?.let { data[40] = it }
+        m.main.chamberTemperature?.let { data[41] = it }
+
+        // === Container Dimensions (Keys 42-45) ===
+        m.main.containerWidth?.let { data[42] = it }
+        m.main.containerOuterDiameter?.let { data[43] = it }
+        m.main.containerInnerDiameter?.let { data[44] = it }
+        m.main.containerHoleDiameter?.let { data[45] = it }
+
+        // === SLA-Specific Fields (Keys 46-51) ===
+        m.main.viscosity18c?.let { data[46] = it }
+        m.main.viscosity25c?.let { data[47] = it }
+        m.main.viscosity40c?.let { data[48] = it }
+        m.main.viscosity60c?.let { data[49] = it }
+        m.main.containerVolumetricCapacity?.let { data[50] = it }
+        m.main.cureWavelength?.let { data[51] = it }
+
+        // === Material Abbreviation (Key 52) ===
+        m.main.materialAbbrev?.takeIf { it.isNotBlank() }?.let { data[52] = it }
+
+        // === Filament Length (Keys 53-54) ===
+        m.main.nominalFullLength?.let { data[53] = it }
+        m.main.actualFullLength?.let { data[54] = it }
+
+        // === Country of Origin (Key 55) ===
+        m.main.countryOfOrigin?.takeIf { it.isNotBlank() }?.let { data[55] = it }
+
+        // === Certifications (Key 56) ===
+        if (m.main.certifications.isNotEmpty()) {
+            val certIds = m.main.certifications.mapNotNull { certsMap[it] }
+            if (certIds.isNotEmpty()) data[56] = certIds
+        }
 
         return mapper.writeValueAsBytes(data)
     }
 
     private fun encodeAux(m: OpenPrintTagModel): ByteArray {
         val data = mutableMapOf<Int, Any>()
-        // If your aux_fields.yaml had defined keys for URLs, they would go here.
-        // For now, we follow the structure of providing a CBOR map.
+
+        // === Aux Region Fields (Keys 0-3) ===
+        m.aux?.consumedWeight?.let { data[0] = it }
+        m.aux?.workgroup?.takeIf { it.isNotBlank() }?.let { data[1] = it }
+        m.aux?.generalPurposeRangeUser?.takeIf { it.isNotBlank() }?.let { data[2] = it }
+        m.aux?.lastStirTime?.let {
+            data[3] = getDateEpoch(it)!!
+        }
+
         return if (data.isEmpty()) ByteArray(0) else mapper.writeValueAsBytes(data)
     }
 
@@ -266,7 +347,7 @@ class Serializer(
     private fun decodeCbor(payload: ByteArray) {
         val model = OpenPrintTagModel()
         decodeRegions(payload, model)
-        Log.d("Serializer", "Decoded CBOR: brand=${model.main.brand}, type=${model.main.materialType}")
+        Log.d("Serializer", "Decoded CBOR: brand=${model.main.brandName}, type=${model.main.materialType}")
     }
 
     /**
@@ -395,6 +476,7 @@ class Serializer(
 
     /**
      * Decode MainRegion directly from a Jackson JsonNode (more lenient with types)
+     * Supports all fields from OpenPrintTag spec
      */
     private fun decodeMainRegionFromNode(node: JsonNode): MainRegion {
         val main = MainRegion()
@@ -426,45 +508,79 @@ class Serializer(
             else -> null
         }
 
-        // Map fields by their CBOR keys
+        // === UUIDs (Keys 0-3) - stored as 16-byte binary ===
+        main.instanceUuid = node.get("0").asFlexibleString()
+        main.packageUuid = node.get("1").asFlexibleString()
+        main.materialUuid = node.get("2").asFlexibleString()
+        main.brandUuid = node.get("3").asFlexibleString()
+
+        // === GTIN (Key 4) ===
         main.gtin = node.get("4").asFlexibleString()
+
+        // === Brand-Specific IDs (Keys 5-7) ===
+        main.brandSpecificInstanceId = node.get("5").asFlexibleString()
+        main.brandSpecificPackageId = node.get("6").asFlexibleString()
+        main.brandSpecificMaterialId = node.get("7").asFlexibleString()
+
+        // === Material Classification (Keys 8-11) ===
         main.materialClass = node.get("8").asFlexibleString() ?: "FFF"
         main.materialType = node.get("9").asFlexibleString()
         main.materialName = node.get("10").asFlexibleString()
-        main.brand = node.get("11").asFlexibleString()
-        main.nominalDiameter = node.get("12").asFlexibleFloat()
+        main.brandName = node.get("11").asFlexibleString()
 
-        // Date handling (key 14 - epoch seconds)
+        // === Write Protection (Key 13) - enum ===
+        main.writeProtection = node.get("13").asFlexibleString()
+
+        // === Dates (Keys 14, 15) - epoch seconds ===
         node.get("14")?.let { dateNode ->
             if (dateNode.isNumber) {
                 val epochSeconds = dateNode.asLong()
                 main.manufacturedDate = java.time.LocalDate.ofEpochDay(epochSeconds / 86400)
             }
         }
+        node.get("15")?.let { dateNode ->
+            if (dateNode.isNumber) {
+                val epochSeconds = dateNode.asLong()
+                main.expirationDate = java.time.LocalDate.ofEpochDay(epochSeconds / 86400)
+            }
+        }
 
-        main.totalWeight = node.get("16").asFlexibleInt()
-        main.ActTotalWeight = node.get("17").asFlexibleInt()
+        // === Weights (Keys 16-18) - Float per spec ===
+        main.nominalNettoFullWeight = node.get("16").asFlexibleFloat()
+        main.actualNettoFullWeight = node.get("17").asFlexibleFloat()
+        main.emptyContainerWeight = node.get("18").asFlexibleFloat()
 
-        // Colors (might be bytes or strings)
+        // === Colors (Keys 19-24) - might be bytes or strings ===
         main.primaryColor = node.get("19").asFlexibleString()
-        main.secondary_color_0 = node.get("20").asFlexibleString()
-        main.secondary_color_1 = node.get("21").asFlexibleString()
-        main.secondary_color_2 = node.get("22").asFlexibleString()
-        main.secondary_color_3 = node.get("23").asFlexibleString()
-        main.secondary_color_4 = node.get("24").asFlexibleString()
+        main.secondaryColor0 = node.get("20").asFlexibleString()
+        main.secondaryColor1 = node.get("21").asFlexibleString()
+        main.secondaryColor2 = node.get("22").asFlexibleString()
+        main.secondaryColor3 = node.get("23").asFlexibleString()
+        main.secondaryColor4 = node.get("24").asFlexibleString()
 
-        main.transmission_distance = node.get("27").asFlexibleFloat()
+        // === Optical Properties (Key 27) ===
+        main.transmissionDistance = node.get("27").asFlexibleFloat()
 
-        // Multi-select tags (key 28) - array of ints
+        // === Tags & Certifications (Keys 28, 56) - arrays ===
         node.get("28")?.let { tagsNode ->
             if (tagsNode.isArray) {
                 main.materialTags = tagsNode.mapNotNull { it.asFlexibleString() }
             }
         }
+        node.get("56")?.let { certsNode ->
+            if (certsNode.isArray) {
+                main.certifications = certsNode.mapNotNull { it.asFlexibleString() }
+            }
+        }
 
+        // === Physical Properties (Keys 29-33) ===
         main.density = node.get("29").asFlexibleFloat()
+        main.filamentDiameter = node.get("30").asFlexibleFloat()  // KEY 30! (not deprecated key 12)
+        main.shoreHardnessA = node.get("31").asFlexibleInt()
+        main.shoreHardnessD = node.get("32").asFlexibleInt()
+        main.minNozzleDiameter = node.get("33").asFlexibleFloat()
 
-        // Temperatures
+        // === Temperatures (Keys 34-41) ===
         main.minPrintTemp = node.get("34").asFlexibleInt()
         main.maxPrintTemp = node.get("35").asFlexibleInt()
         main.preheatTemp = node.get("36").asFlexibleInt()
@@ -472,19 +588,33 @@ class Serializer(
         main.maxBedTemp = node.get("38").asFlexibleInt()
         main.minChamberTemp = node.get("39").asFlexibleInt()
         main.maxChamberTemp = node.get("40").asFlexibleInt()
-        main.idealChamberTemp = node.get("41").asFlexibleInt()
+        main.chamberTemperature = node.get("41").asFlexibleInt()
 
+        // === Container Dimensions (Keys 42-45) - FFF spool ===
+        main.containerWidth = node.get("42").asFlexibleInt()
+        main.containerOuterDiameter = node.get("43").asFlexibleInt()
+        main.containerInnerDiameter = node.get("44").asFlexibleInt()
+        main.containerHoleDiameter = node.get("45").asFlexibleInt()
+
+        // === SLA-Specific Fields (Keys 46-51) ===
+        main.viscosity18c = node.get("46").asFlexibleFloat()
+        main.viscosity25c = node.get("47").asFlexibleFloat()
+        main.viscosity40c = node.get("48").asFlexibleFloat()
+        main.viscosity60c = node.get("49").asFlexibleFloat()
+        main.containerVolumetricCapacity = node.get("50").asFlexibleFloat()
+        main.cureWavelength = node.get("51").asFlexibleInt()
+
+        // === Material Abbreviation (Key 52) ===
         main.materialAbbrev = node.get("52").asFlexibleString()
+
+        // === Filament Length (Keys 53-54) ===
+        main.nominalFullLength = node.get("53").asFlexibleFloat()
+        main.actualFullLength = node.get("54").asFlexibleFloat()
+
+        // === Country of Origin (Key 55) ===
         main.countryOfOrigin = node.get("55").asFlexibleString()
 
-        // Certifications (key 56) - array of ints
-        node.get("56")?.let { certsNode ->
-            if (certsNode.isArray) {
-                main.certifications = certsNode.mapNotNull { it.asFlexibleString() }
-            }
-        }
-
-        // Post-process enum values (reverse lookup)
+        // === Post-process enum values (reverse lookup) ===
         main.materialType = typeMap.entries.find {
             it.value.toString() == main.materialType
         }?.key ?: main.materialType
@@ -505,11 +635,44 @@ class Serializer(
     }
 
     /**
-     * Decode AuxRegion from a Jackson JsonNode (converts to bytes first)
+     * Decode AuxRegion directly from a Jackson JsonNode
+     * Supports all fields from OpenPrintTag spec
      */
     private fun decodeAuxRegionFromNode(node: JsonNode): AuxRegion {
-        val bytes = mapper.writeValueAsBytes(node)
-        return decodeAuxRegion(bytes) ?: AuxRegion()
+        val aux = AuxRegion()
+
+        // Helper functions (same as in decodeMainRegionFromNode)
+        fun JsonNode?.asFlexibleString(): String? = when {
+            this == null || this.isNull -> null
+            this.isTextual -> this.asText()
+            this.isNumber -> this.asText()
+            this.isBinary -> this.binaryValue()?.let { bytes ->
+                bytes.joinToString("") { "%02X".format(it) }
+            }
+            else -> this.asText()
+        }
+
+        fun JsonNode?.asFlexibleFloat(): Float? = when {
+            this == null || this.isNull -> null
+            this.isNumber -> this.floatValue()
+            this.isTextual -> this.asText().toFloatOrNull()
+            else -> null
+        }
+
+        // === Aux Region Fields (Keys 0-3) ===
+        aux.consumedWeight = node.get("0").asFlexibleFloat()
+        aux.workgroup = node.get("1").asFlexibleString()
+        aux.generalPurposeRangeUser = node.get("2").asFlexibleString()
+
+        // lastStirTime (key 3) - epoch seconds
+        node.get("3")?.let { dateNode ->
+            if (dateNode.isNumber) {
+                val epochSeconds = dateNode.asLong()
+                aux.lastStirTime = java.time.LocalDate.ofEpochDay(epochSeconds / 86400)
+            }
+        }
+
+        return aux
     }
 
     @OptIn(ExperimentalSerializationApi::class)

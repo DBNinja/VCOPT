@@ -414,15 +414,24 @@ class MainActivity : AppCompatActivity() {
         val main = model.main
 
         // Brand and Material
-        main.brand?.let { sb.appendLine("Brand: $it") }
+        main.brandName?.let { sb.appendLine("Brand: $it") }
         main.materialType?.let { sb.appendLine("Material: $it") }
         main.materialName?.let { sb.appendLine("Name: $it") }
         main.materialClass.let { sb.appendLine("Class: $it") }
 
         // Physical properties
         main.density?.let { sb.appendLine("Density: $it g/cm³") }
-        main.nominalDiameter?.let { sb.appendLine("Diameter: $it mm") }
-        main.totalWeight?.let { sb.appendLine("Weight: $it g") }
+        main.filamentDiameter?.let { sb.appendLine("Diameter: $it mm") }
+        main.nominalNettoFullWeight?.let { sb.appendLine("Weight: ${it.toInt()} g") }
+
+        // Shore hardness (for TPU and flexible materials)
+        if (main.shoreHardnessA != null || main.shoreHardnessD != null) {
+            val hardness = listOfNotNull(
+                main.shoreHardnessA?.let { "${it}A" },
+                main.shoreHardnessD?.let { "${it}D" }
+            ).joinToString(" / ")
+            sb.appendLine("Hardness: $hardness")
+        }
 
         // Temperatures
         val temps = mutableListOf<String>()
@@ -448,11 +457,29 @@ class MainActivity : AppCompatActivity() {
             sb.appendLine("Tags: ${main.materialTags.joinToString(", ")}")
         }
 
-        // Date
+        // Certifications
+        if (main.certifications.isNotEmpty()) {
+            sb.appendLine("Certs: ${main.certifications.joinToString(", ")}")
+        }
+
+        // Dates
         main.manufacturedDate?.let { sb.appendLine("Manufactured: $it") }
+        main.expirationDate?.let { sb.appendLine("Expires: $it") }
+
+        // Container dimensions (if present)
+        if (main.containerOuterDiameter != null) {
+            val dims = listOfNotNull(
+                main.containerOuterDiameter?.let { "${it}mm outer" },
+                main.containerWidth?.let { "${it}mm width" }
+            ).joinToString(" × ")
+            sb.appendLine("Spool: $dims")
+        }
 
         // GTIN
         main.gtin?.let { sb.appendLine("GTIN: $it") }
+
+        // Country of origin
+        main.countryOfOrigin?.let { sb.appendLine("Origin: $it") }
 
         return sb.toString().ifEmpty { "No data decoded" }
     }

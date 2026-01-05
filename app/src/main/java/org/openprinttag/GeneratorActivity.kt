@@ -267,8 +267,8 @@ class GeneratorActivity : AppCompatActivity() {
         // Basic Fields
         val main = model.main
         // 1. Strings: Only set if not null and not blank
-        main.brand?.takeIf { it.isNotBlank() }?.let {
-            findViewById<EditText>(R.id.getBrand).setText(it) 
+        main.brandName?.takeIf { it.isNotBlank() }?.let {
+            findViewById<EditText>(R.id.getBrand).setText(it)
         }
         main.materialName?.takeIf { it.isNotBlank() }?.let { 
             findViewById<EditText>(R.id.getMaterialName).setText(it) 
@@ -571,7 +571,7 @@ class GeneratorActivity : AppCompatActivity() {
                 .filter { it.key in currentSelectedKeys }
                 .map { it.name }
 
-            model.main.brand = getBrand.text.toString()
+            model.main.brandName = getBrand.text.toString()
             model.main.materialName = getMaterialName.text.toString()
             model.main.primaryColor = getColor.text.toString()
             model.main.gtin = getGtin.text.toString().ifBlank { null }

@@ -15,7 +15,7 @@ class SerializerTest {
         val model = OpenPrintTagModel()
         model.main.materialClass = "FFF"
         model.main.materialType = "PLA"
-        model.main.brand = "TestBrand"
+        model.main.brandName = "TestBrand"
 
         val serializer = Serializer(classMap, typeMap, tagsMap, certsMap)
         val bin = serializer.serialize(model)
@@ -35,7 +35,7 @@ class SerializerTest {
         val model = OpenPrintTagModel()
         model.main.materialClass = "FFF"
         model.main.materialType = "PLA"
-        model.main.brand = "TestBrand"
+        model.main.brandName = "TestBrand"
         model.main.minPrintTemp = 190
         model.main.maxPrintTemp = 220
 
@@ -51,7 +51,7 @@ class SerializerTest {
         val model = OpenPrintTagModel()
         model.main.materialClass = "FFF"
         model.main.materialType = "PETG"
-        model.main.brand = "Polymaker"
+        model.main.brandName = "Polymaker"
         model.main.materialName = "PolyLite PETG"
         model.main.materialTags = listOf("food_safe", "uv_resistant")
         model.main.density = 1.27f
@@ -102,7 +102,7 @@ class SerializerTest {
 
         // Create a simple CBOR payload
         val model = OpenPrintTagModel()
-        model.main.brand = "Test"
+        model.main.brandName = "Test"
         val cborPayload = byteArrayOf(0xA1.toByte(), 0x0B, 0x64, 0x54, 0x65, 0x73, 0x74) // {11: "Test"}
 
         val result = serializer.generateDualRecordBin(cborPayload, "https://www.openprinttag.org")

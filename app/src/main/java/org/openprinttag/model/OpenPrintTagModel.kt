@@ -17,7 +17,7 @@ data class OpenPrintTagModel(
     var meta: MetaRegion? = MetaRegion(),
     var main: MainRegion = MainRegion(),
     var aux: AuxRegion? = AuxRegion(),
-    
+
     // URL is usually a standard NDEF record, not CBOR
     var urlRecord: UrlRegion? = null
 )
@@ -43,7 +43,24 @@ object LocalDateSerializer : KSerializer<LocalDate> {
         LocalDate.ofEpochDay(decoder.decodeLong() / 86400) // Convert seconds to days
 }
 
-// 2. Custom Serializer for String that can decode from CBOR integers
+// 2. Custom Serializer for nullable LocalDate (for optional date fields)
+object NullableLocalDateSerializer : KSerializer<LocalDate?> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("NullableLocalDate", PrimitiveKind.LONG)
+
+    override fun serialize(encoder: Encoder, value: LocalDate?) {
+        if (value != null) encoder.encodeLong(value.atStartOfDay(ZoneOffset.UTC).toEpochSecond())
+    }
+
+    override fun deserialize(decoder: Decoder): LocalDate? {
+        return try {
+            LocalDate.ofEpochDay(decoder.decodeLong() / 86400)
+        } catch (e: Exception) {
+            null
+        }
+    }
+}
+
+// 3. Custom Serializer for String that can decode from CBOR integers
 // CBOR stores enum values as integers, but we want String for UI compatibility
 object IntOrStringSerializer : KSerializer<String> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("IntOrString", PrimitiveKind.STRING)
@@ -67,7 +84,7 @@ object IntOrStringSerializer : KSerializer<String> {
     }
 }
 
-// 3. Custom Serializer for nullable String that can decode from CBOR integers or bytes
+// 4. Custom Serializer for nullable String that can decode from CBOR integers or bytes
 object NullableIntOrStringSerializer : KSerializer<String?> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("NullableIntOrString", PrimitiveKind.STRING)
 
@@ -93,7 +110,7 @@ object NullableIntOrStringSerializer : KSerializer<String?> {
     }
 }
 
-// 4. Custom Serializer for List<String> that can decode from CBOR integer arrays
+// 5. Custom Serializer for List<String> that can decode from CBOR integer arrays
 // CBOR stores tags/certs as integer IDs, but we want String list for UI compatibility
 object IntListAsStringListSerializer : KSerializer<List<String>> {
     override val descriptor: SerialDescriptor = kotlinx.serialization.descriptors.listSerialDescriptor<String>()
@@ -133,52 +150,76 @@ object IntListAsStringListSerializer : KSerializer<List<String>> {
 
 
 
+/**
+ * MainRegion contains all fields from the OpenPrintTag main_fields.yaml specification.
+ * Field names follow the official spec naming convention.
+ * CBOR keys are specified via @SerialName annotations.
+ */
 @Serializable
 data class MainRegion(
-    // Enums are stored as their Integer keys in the binary tag
-    // but we keep them as Strings here for UI/Spinner compatibility.
-    // The Serializer will handle the mapping to Integers.
+    // === UUIDs (Keys 0-3) - stored as 16-byte binary in CBOR ===
+    @SerialName("0") var instanceUuid: String? = null,
+    @SerialName("1") var packageUuid: String? = null,
+    @SerialName("2") var materialUuid: String? = null,
+    @SerialName("3") var brandUuid: String? = null,
+
+    // === GTIN (Key 4) ===
+    @Serializable(with = NullableIntOrStringSerializer::class)
+    @SerialName("4") var gtin: String? = null,
+
+    // === Brand-Specific IDs (Keys 5-7) ===
+    @SerialName("5") var brandSpecificInstanceId: String? = null,
+    @SerialName("6") var brandSpecificPackageId: String? = null,
+    @SerialName("7") var brandSpecificMaterialId: String? = null,
+
+    // === Material Classification (Keys 8-11) ===
     @Serializable(with = IntOrStringSerializer::class)
     @SerialName("8") var materialClass: String = "FFF",
     @Serializable(with = NullableIntOrStringSerializer::class)
     @SerialName("9") var materialType: String? = null,
-
-    @SerialName("11") var brand: String? = null,
     @SerialName("10") var materialName: String? = null,
-    @SerialName("52") var materialAbbrev: String? = null,
+    @SerialName("11") var brandName: String? = null,  // renamed from 'brand'
 
-    // Key 19: Primary Color (ARGB or RGB)
-    @SerialName("19") var primaryColor: String? = null,
-    @SerialName("20") var secondary_color_0: String? = null,
-    @SerialName("21") var secondary_color_1: String? = null,
-    @SerialName("22") var secondary_color_2: String? = null,
-    @SerialName("23") var secondary_color_3: String? = null,
-    @SerialName("24") var secondary_color_4: String? = null,
-
-    // Key 29: Density is a float (g/cm³)
-    @SerialName("27") var transmission_distance: Float? = null,
-    @SerialName("29") var density: Float? = null,
-
-    // Key 4: GTIN should be treated as a number in the binary
+    // === Write Protection (Key 13) - enum ===
     @Serializable(with = NullableIntOrStringSerializer::class)
-    @SerialName("4") var gtin: String? = null,
+    @SerialName("13") var writeProtection: String? = null,
 
-    // Key 12: Nominal Diameter (mm) - Important for FFF
-    @SerialName("12") var nominalDiameter: Float? = null,
-
-    // Key 16: Total Weight / Net Weight (g)
-    @SerialName("16") var totalWeight: Int? = null,
-    @SerialName("17") var ActTotalWeight: Int? = null,
-    
-    
-    // Key 14: Date. CBOR expects epoch seconds
-    // Use @Serializable(with = ...) for LocalDate
-    @kotlinx.serialization.Serializable(with = LocalDateSerializer::class)
+    // === Dates (Keys 14, 15) ===
+    @Serializable(with = NullableLocalDateSerializer::class)
     @SerialName("14") var manufacturedDate: LocalDate? = null,
-    
-    @SerialName("55") var countryOfOrigin: String? = null,
+    @Serializable(with = NullableLocalDateSerializer::class)
+    @SerialName("15") var expirationDate: LocalDate? = null,
 
-    // Keys 34-38: Temperatures are Integers (°C)
+    // === Weights (Keys 16-18) - spec says "number" = Float ===
+    @SerialName("16") var nominalNettoFullWeight: Float? = null,  // renamed from totalWeight, changed Int→Float
+    @SerialName("17") var actualNettoFullWeight: Float? = null,   // renamed from ActTotalWeight, changed Int→Float
+    @SerialName("18") var emptyContainerWeight: Float? = null,
+
+    // === Colors (Keys 19-24) - stored as RGB(A) bytes in CBOR ===
+    @SerialName("19") var primaryColor: String? = null,
+    @SerialName("20") var secondaryColor0: String? = null,
+    @SerialName("21") var secondaryColor1: String? = null,
+    @SerialName("22") var secondaryColor2: String? = null,
+    @SerialName("23") var secondaryColor3: String? = null,
+    @SerialName("24") var secondaryColor4: String? = null,
+
+    // === Optical Properties (Key 27) ===
+    @SerialName("27") var transmissionDistance: Float? = null,
+
+    // === Tags & Certifications (Keys 28, 56) - enum arrays ===
+    @Serializable(with = IntListAsStringListSerializer::class)
+    @SerialName("28") var materialTags: List<String> = emptyList(),
+    @Serializable(with = IntListAsStringListSerializer::class)
+    @SerialName("56") var certifications: List<String> = emptyList(),
+
+    // === Physical Properties (Keys 29-33) ===
+    @SerialName("29") var density: Float? = null,
+    @SerialName("30") var filamentDiameter: Float? = null,  // KEY 30! (not deprecated key 12)
+    @SerialName("31") var shoreHardnessA: Int? = null,
+    @SerialName("32") var shoreHardnessD: Int? = null,
+    @SerialName("33") var minNozzleDiameter: Float? = null,
+
+    // === Temperatures (Keys 34-41) ===
     @SerialName("34") var minPrintTemp: Int? = null,
     @SerialName("35") var maxPrintTemp: Int? = null,
     @SerialName("36") var preheatTemp: Int? = null,
@@ -186,37 +227,60 @@ data class MainRegion(
     @SerialName("38") var maxBedTemp: Int? = null,
     @SerialName("39") var minChamberTemp: Int? = null,
     @SerialName("40") var maxChamberTemp: Int? = null,
-    @SerialName("41") var idealChamberTemp: Int? = null,
+    @SerialName("41") var chamberTemperature: Int? = null,  // renamed from idealChamberTemp
 
-    // Multi-select enums (CBOR stores as integer arrays, we convert to strings)
-    @Serializable(with = IntListAsStringListSerializer::class)
-    @SerialName("28") var materialTags: List<String> = emptyList(),
-    @Serializable(with = IntListAsStringListSerializer::class)
-    @SerialName("56") var certifications: List<String> = emptyList(),
-    )
+    // === Container Dimensions (Keys 42-45) - FFF spool dimensions ===
+    @SerialName("42") var containerWidth: Int? = null,
+    @SerialName("43") var containerOuterDiameter: Int? = null,
+    @SerialName("44") var containerInnerDiameter: Int? = null,
+    @SerialName("45") var containerHoleDiameter: Int? = null,
+
+    // === SLA-Specific Fields (Keys 46-51) ===
+    @SerialName("46") var viscosity18c: Float? = null,
+    @SerialName("47") var viscosity25c: Float? = null,
+    @SerialName("48") var viscosity40c: Float? = null,
+    @SerialName("49") var viscosity60c: Float? = null,
+    @SerialName("50") var containerVolumetricCapacity: Float? = null,
+    @SerialName("51") var cureWavelength: Int? = null,
+
+    // === Material Abbreviation (Key 52) ===
+    @SerialName("52") var materialAbbrev: String? = null,
+
+    // === Filament Length (Keys 53-54) ===
+    @SerialName("53") var nominalFullLength: Float? = null,
+    @SerialName("54") var actualFullLength: Float? = null,
+
+    // === Country of Origin (Key 55) ===
+    @SerialName("55") var countryOfOrigin: String? = null,
+)
 
 
-    @kotlinx.serialization.Serializable
-    data class AuxRegion(
-        @SerialName("0") var consumedWeight: Int? = null,
-        @SerialName("1") var workgroup: String? = ""
-        // ... move other aux_fields.yaml keys here
-    )
+/**
+ * AuxRegion contains fields from the OpenPrintTag aux_fields.yaml specification.
+ * These fields are typically user-writable even on protected tags.
+ */
+@Serializable
+data class AuxRegion(
+    @SerialName("0") var consumedWeight: Float? = null,  // changed Int→Float per spec
+    @SerialName("1") var workgroup: String? = null,
+    @SerialName("2") var generalPurposeRangeUser: String? = null,
+    @Serializable(with = NullableLocalDateSerializer::class)
+    @SerialName("3") var lastStirTime: LocalDate? = null,  // SLA-specific
+)
 
-    @kotlinx.serialization.Serializable
-    data class UrlRegion(
-        var url: String = "https://openprinttag.org",
-        var includeInTag: Boolean = false
-    ) 
+@Serializable
+data class UrlRegion(
+    var url: String = "https://openprinttag.org",
+    var includeInTag: Boolean = false
+)
 
 
 
-    /**
-     * Helper to get the Manufactured Date as Epoch Seconds for the Serializer
-     */
+/**
+ * Helper to get the Manufactured Date as Epoch Seconds for the Serializer
+ */
 
-    fun getDateEpoch(date: LocalDate?): Long? {
+fun getDateEpoch(date: LocalDate?): Long? {
 
-        return date?.atStartOfDay(ZoneOffset.UTC)?.toEpochSecond()
-    }
-
+    return date?.atStartOfDay(ZoneOffset.UTC)?.toEpochSecond()
+}
