@@ -152,106 +152,106 @@ object IntListAsStringListSerializer : KSerializer<List<String>> {
 
 /**
  * MainRegion contains all fields from the OpenPrintTag main_fields.yaml specification.
- * Field names follow the official spec naming convention.
+ * Field names follow the official spec naming convention (snake_case).
  * CBOR keys are specified via @SerialName annotations.
  */
 @Serializable
 data class MainRegion(
     // === UUIDs (Keys 0-3) - stored as 16-byte binary in CBOR ===
-    @SerialName("0") var instanceUuid: String? = null,
-    @SerialName("1") var packageUuid: String? = null,
-    @SerialName("2") var materialUuid: String? = null,
-    @SerialName("3") var brandUuid: String? = null,
+    @SerialName("0") var instance_uuid: String? = null,
+    @SerialName("1") var package_uuid: String? = null,
+    @SerialName("2") var material_uuid: String? = null,
+    @SerialName("3") var brand_uuid: String? = null,
 
     // === GTIN (Key 4) ===
     @Serializable(with = NullableIntOrStringSerializer::class)
     @SerialName("4") var gtin: String? = null,
 
     // === Brand-Specific IDs (Keys 5-7) ===
-    @SerialName("5") var brandSpecificInstanceId: String? = null,
-    @SerialName("6") var brandSpecificPackageId: String? = null,
-    @SerialName("7") var brandSpecificMaterialId: String? = null,
+    @SerialName("5") var brand_specific_instance_id: String? = null,
+    @SerialName("6") var brand_specific_package_id: String? = null,
+    @SerialName("7") var brand_specific_material_id: String? = null,
 
     // === Material Classification (Keys 8-11) ===
     @Serializable(with = IntOrStringSerializer::class)
-    @SerialName("8") var materialClass: String = "FFF",
+    @SerialName("8") var material_class: String = "FFF",
     @Serializable(with = NullableIntOrStringSerializer::class)
-    @SerialName("9") var materialType: String? = null,
-    @SerialName("10") var materialName: String? = null,
-    @SerialName("11") var brandName: String? = null,  // renamed from 'brand'
+    @SerialName("9") var material_type: String? = null,
+    @SerialName("10") var material_name: String? = null,
+    @SerialName("11") var brand_name: String? = null,
 
     // === Write Protection (Key 13) - enum ===
     @Serializable(with = NullableIntOrStringSerializer::class)
-    @SerialName("13") var writeProtection: String? = null,
+    @SerialName("13") var write_protection: String? = null,
 
     // === Dates (Keys 14, 15) ===
     @Serializable(with = NullableLocalDateSerializer::class)
-    @SerialName("14") var manufacturedDate: LocalDate? = null,
+    @SerialName("14") var manufactured_date: LocalDate? = null,
     @Serializable(with = NullableLocalDateSerializer::class)
-    @SerialName("15") var expirationDate: LocalDate? = null,
+    @SerialName("15") var expiration_date: LocalDate? = null,
 
     // === Weights (Keys 16-18) - spec says "number" = Float ===
-    @SerialName("16") var nominalNettoFullWeight: Float? = null,  // renamed from totalWeight, changed Int→Float
-    @SerialName("17") var actualNettoFullWeight: Float? = null,   // renamed from ActTotalWeight, changed Int→Float
-    @SerialName("18") var emptyContainerWeight: Float? = null,
+    @SerialName("16") var nominal_netto_full_weight: Float? = null,
+    @SerialName("17") var actual_netto_full_weight: Float? = null,
+    @SerialName("18") var empty_container_weight: Float? = null,
 
     // === Colors (Keys 19-24) - stored as RGB(A) bytes in CBOR ===
-    @SerialName("19") var primaryColor: String? = null,
-    @SerialName("20") var secondaryColor0: String? = null,
-    @SerialName("21") var secondaryColor1: String? = null,
-    @SerialName("22") var secondaryColor2: String? = null,
-    @SerialName("23") var secondaryColor3: String? = null,
-    @SerialName("24") var secondaryColor4: String? = null,
+    @SerialName("19") var primary_color: String? = null,
+    @SerialName("20") var secondary_color_0: String? = null,
+    @SerialName("21") var secondary_color_1: String? = null,
+    @SerialName("22") var secondary_color_2: String? = null,
+    @SerialName("23") var secondary_color_3: String? = null,
+    @SerialName("24") var secondary_color_4: String? = null,
 
     // === Optical Properties (Key 27) ===
-    @SerialName("27") var transmissionDistance: Float? = null,
+    @SerialName("27") var transmission_distance: Float? = null,
 
     // === Tags & Certifications (Keys 28, 56) - enum arrays ===
     @Serializable(with = IntListAsStringListSerializer::class)
-    @SerialName("28") var materialTags: List<String> = emptyList(),
+    @SerialName("28") var tags: List<String> = emptyList(),
     @Serializable(with = IntListAsStringListSerializer::class)
     @SerialName("56") var certifications: List<String> = emptyList(),
 
     // === Physical Properties (Keys 29-33) ===
     @SerialName("29") var density: Float? = null,
-    @SerialName("30") var filamentDiameter: Float? = null,  // KEY 30! (not deprecated key 12)
-    @SerialName("31") var shoreHardnessA: Int? = null,
-    @SerialName("32") var shoreHardnessD: Int? = null,
-    @SerialName("33") var minNozzleDiameter: Float? = null,
+    @SerialName("30") var filament_diameter: Float? = null,  // KEY 30! (not deprecated key 12)
+    @SerialName("31") var shore_hardness_a: Int? = null,
+    @SerialName("32") var shore_hardness_d: Int? = null,
+    @SerialName("33") var min_nozzle_diameter: Float? = null,
 
     // === Temperatures (Keys 34-41) ===
-    @SerialName("34") var minPrintTemp: Int? = null,
-    @SerialName("35") var maxPrintTemp: Int? = null,
-    @SerialName("36") var preheatTemp: Int? = null,
-    @SerialName("37") var minBedTemp: Int? = null,
-    @SerialName("38") var maxBedTemp: Int? = null,
-    @SerialName("39") var minChamberTemp: Int? = null,
-    @SerialName("40") var maxChamberTemp: Int? = null,
-    @SerialName("41") var chamberTemperature: Int? = null,  // renamed from idealChamberTemp
+    @SerialName("34") var min_print_temperature: Int? = null,
+    @SerialName("35") var max_print_temperature: Int? = null,
+    @SerialName("36") var preheat_temperature: Int? = null,
+    @SerialName("37") var min_bed_temperature: Int? = null,
+    @SerialName("38") var max_bed_temperature: Int? = null,
+    @SerialName("39") var min_chamber_temperature: Int? = null,
+    @SerialName("40") var max_chamber_temperature: Int? = null,
+    @SerialName("41") var chamber_temperature: Int? = null,
 
     // === Container Dimensions (Keys 42-45) - FFF spool dimensions ===
-    @SerialName("42") var containerWidth: Int? = null,
-    @SerialName("43") var containerOuterDiameter: Int? = null,
-    @SerialName("44") var containerInnerDiameter: Int? = null,
-    @SerialName("45") var containerHoleDiameter: Int? = null,
+    @SerialName("42") var container_width: Int? = null,
+    @SerialName("43") var container_outer_diameter: Int? = null,
+    @SerialName("44") var container_inner_diameter: Int? = null,
+    @SerialName("45") var container_hole_diameter: Int? = null,
 
     // === SLA-Specific Fields (Keys 46-51) ===
-    @SerialName("46") var viscosity18c: Float? = null,
-    @SerialName("47") var viscosity25c: Float? = null,
-    @SerialName("48") var viscosity40c: Float? = null,
-    @SerialName("49") var viscosity60c: Float? = null,
-    @SerialName("50") var containerVolumetricCapacity: Float? = null,
-    @SerialName("51") var cureWavelength: Int? = null,
+    @SerialName("46") var viscosity_18c: Float? = null,
+    @SerialName("47") var viscosity_25c: Float? = null,
+    @SerialName("48") var viscosity_40c: Float? = null,
+    @SerialName("49") var viscosity_60c: Float? = null,
+    @SerialName("50") var container_volumetric_capacity: Float? = null,
+    @SerialName("51") var cure_wavelength: Int? = null,
 
     // === Material Abbreviation (Key 52) ===
-    @SerialName("52") var materialAbbrev: String? = null,
+    @SerialName("52") var material_abbreviation: String? = null,
 
     // === Filament Length (Keys 53-54) ===
-    @SerialName("53") var nominalFullLength: Float? = null,
-    @SerialName("54") var actualFullLength: Float? = null,
+    @SerialName("53") var nominal_full_length: Float? = null,
+    @SerialName("54") var actual_full_length: Float? = null,
 
     // === Country of Origin (Key 55) ===
-    @SerialName("55") var countryOfOrigin: String? = null,
+    @SerialName("55") var country_of_origin: String? = null,
 )
 
 
@@ -261,11 +261,11 @@ data class MainRegion(
  */
 @Serializable
 data class AuxRegion(
-    @SerialName("0") var consumedWeight: Float? = null,  // changed Int→Float per spec
+    @SerialName("0") var consumed_weight: Float? = null,
     @SerialName("1") var workgroup: String? = null,
-    @SerialName("2") var generalPurposeRangeUser: String? = null,
+    @SerialName("2") var general_purpose_range_user: String? = null,
     @Serializable(with = NullableLocalDateSerializer::class)
-    @SerialName("3") var lastStirTime: LocalDate? = null,  // SLA-specific
+    @SerialName("3") var last_stir_time: LocalDate? = null,
 )
 
 @Serializable

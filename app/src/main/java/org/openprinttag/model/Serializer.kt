@@ -126,104 +126,104 @@ class Serializer(
         val data = mutableMapOf<Int, Any>()
 
         // === UUIDs (Keys 0-3) ===
-        m.main.instanceUuid?.takeIf { it.isNotBlank() }?.let { data[0] = it }
-        m.main.packageUuid?.takeIf { it.isNotBlank() }?.let { data[1] = it }
-        m.main.materialUuid?.takeIf { it.isNotBlank() }?.let { data[2] = it }
-        m.main.brandUuid?.takeIf { it.isNotBlank() }?.let { data[3] = it }
+        m.main.instance_uuid?.takeIf { it.isNotBlank() }?.let { data[0] = it }
+        m.main.package_uuid?.takeIf { it.isNotBlank() }?.let { data[1] = it }
+        m.main.material_uuid?.takeIf { it.isNotBlank() }?.let { data[2] = it }
+        m.main.brand_uuid?.takeIf { it.isNotBlank() }?.let { data[3] = it }
 
         // === GTIN (Key 4) ===
         m.main.gtin?.toLongOrNull()?.let { data[4] = it }
 
         // === Brand-Specific IDs (Keys 5-7) ===
-        m.main.brandSpecificInstanceId?.takeIf { it.isNotBlank() }?.let { data[5] = it }
-        m.main.brandSpecificPackageId?.takeIf { it.isNotBlank() }?.let { data[6] = it }
-        m.main.brandSpecificMaterialId?.takeIf { it.isNotBlank() }?.let { data[7] = it }
+        m.main.brand_specific_instance_id?.takeIf { it.isNotBlank() }?.let { data[5] = it }
+        m.main.brand_specific_package_id?.takeIf { it.isNotBlank() }?.let { data[6] = it }
+        m.main.brand_specific_material_id?.takeIf { it.isNotBlank() }?.let { data[7] = it }
 
         // === Material Classification (Keys 8-11) ===
-        classMap[m.main.materialClass]?.let { data[8] = it }
+        classMap[m.main.material_class]?.let { data[8] = it }
 
-        val typeStr = m.main.materialType
+        val typeStr = m.main.material_type
         if (typeStr != null && typeStr != "Select Material Type...") {
             typeMap[typeStr]?.let { data[9] = it }
         }
 
-        m.main.materialName?.takeIf { it.isNotBlank() }?.let { data[10] = it }
-        m.main.brandName?.takeIf { it.isNotBlank() }?.let { data[11] = it }
+        m.main.material_name?.takeIf { it.isNotBlank() }?.let { data[10] = it }
+        m.main.brand_name?.takeIf { it.isNotBlank() }?.let { data[11] = it }
 
         // === Write Protection (Key 13) ===
         // Note: could add writeProtectionMap lookup here if needed
-        m.main.writeProtection?.toIntOrNull()?.let { data[13] = it }
+        m.main.write_protection?.toIntOrNull()?.let { data[13] = it }
 
         // === Dates (Keys 14, 15) ===
-        m.main.manufacturedDate?.let {
-            data[14] = getDateEpoch(m.main.manufacturedDate)!!
+        m.main.manufactured_date?.let {
+            data[14] = getDateEpoch(m.main.manufactured_date)!!
         }
-        m.main.expirationDate?.let {
-            data[15] = getDateEpoch(m.main.expirationDate)!!
+        m.main.expiration_date?.let {
+            data[15] = getDateEpoch(m.main.expiration_date)!!
         }
 
         // === Weights (Keys 16-18) ===
-        m.main.nominalNettoFullWeight?.let { data[16] = it }
-        m.main.actualNettoFullWeight?.let { data[17] = it }
-        m.main.emptyContainerWeight?.let { data[18] = it }
+        m.main.nominal_netto_full_weight?.let { data[16] = it }
+        m.main.actual_netto_full_weight?.let { data[17] = it }
+        m.main.empty_container_weight?.let { data[18] = it }
 
         // === Colors (Keys 19-24) ===
-        m.main.primaryColor?.takeIf { it.isNotBlank() }?.let { data[19] = it }
-        m.main.secondaryColor0?.takeIf { it.isNotBlank() }?.let { data[20] = it }
-        m.main.secondaryColor1?.takeIf { it.isNotBlank() }?.let { data[21] = it }
-        m.main.secondaryColor2?.takeIf { it.isNotBlank() }?.let { data[22] = it }
-        m.main.secondaryColor3?.takeIf { it.isNotBlank() }?.let { data[23] = it }
-        m.main.secondaryColor4?.takeIf { it.isNotBlank() }?.let { data[24] = it }
+        m.main.primary_color?.takeIf { it.isNotBlank() }?.let { data[19] = it }
+        m.main.secondary_color_0?.takeIf { it.isNotBlank() }?.let { data[20] = it }
+        m.main.secondary_color_1?.takeIf { it.isNotBlank() }?.let { data[21] = it }
+        m.main.secondary_color_2?.takeIf { it.isNotBlank() }?.let { data[22] = it }
+        m.main.secondary_color_3?.takeIf { it.isNotBlank() }?.let { data[23] = it }
+        m.main.secondary_color_4?.takeIf { it.isNotBlank() }?.let { data[24] = it }
 
         // === Optical Properties (Key 27) ===
-        m.main.transmissionDistance?.let { data[27] = it }
+        m.main.transmission_distance?.let { data[27] = it }
 
         // === Tags (Key 28) ===
-        if (m.main.materialTags.isNotEmpty()) {
-            val tagIds = m.main.materialTags.mapNotNull { tagsMap[it] }
+        if (m.main.tags.isNotEmpty()) {
+            val tagIds = m.main.tags.mapNotNull { tagsMap[it] }
             if (tagIds.isNotEmpty()) data[28] = tagIds
         }
 
         // === Physical Properties (Keys 29-33) ===
         m.main.density?.let { data[29] = it }
-        m.main.filamentDiameter?.let { data[30] = it }  // KEY 30! (not deprecated key 12)
-        m.main.shoreHardnessA?.let { data[31] = it }
-        m.main.shoreHardnessD?.let { data[32] = it }
-        m.main.minNozzleDiameter?.let { data[33] = it }
+        m.main.filament_diameter?.let { data[30] = it }  // KEY 30! (not deprecated key 12)
+        m.main.shore_hardness_a?.let { data[31] = it }
+        m.main.shore_hardness_d?.let { data[32] = it }
+        m.main.min_nozzle_diameter?.let { data[33] = it }
 
         // === Temperatures (Keys 34-41) ===
-        m.main.minPrintTemp?.let { data[34] = it }
-        m.main.maxPrintTemp?.let { data[35] = it }
-        m.main.preheatTemp?.let { data[36] = it }
-        m.main.minBedTemp?.let { data[37] = it }
-        m.main.maxBedTemp?.let { data[38] = it }
-        m.main.minChamberTemp?.let { data[39] = it }
-        m.main.maxChamberTemp?.let { data[40] = it }
-        m.main.chamberTemperature?.let { data[41] = it }
+        m.main.min_print_temperature?.let { data[34] = it }
+        m.main.max_print_temperature?.let { data[35] = it }
+        m.main.preheat_temperature?.let { data[36] = it }
+        m.main.min_bed_temperature?.let { data[37] = it }
+        m.main.max_bed_temperature?.let { data[38] = it }
+        m.main.min_chamber_temperature?.let { data[39] = it }
+        m.main.max_chamber_temperature?.let { data[40] = it }
+        m.main.chamber_temperature?.let { data[41] = it }
 
         // === Container Dimensions (Keys 42-45) ===
-        m.main.containerWidth?.let { data[42] = it }
-        m.main.containerOuterDiameter?.let { data[43] = it }
-        m.main.containerInnerDiameter?.let { data[44] = it }
-        m.main.containerHoleDiameter?.let { data[45] = it }
+        m.main.container_width?.let { data[42] = it }
+        m.main.container_outer_diameter?.let { data[43] = it }
+        m.main.container_inner_diameter?.let { data[44] = it }
+        m.main.container_hole_diameter?.let { data[45] = it }
 
         // === SLA-Specific Fields (Keys 46-51) ===
-        m.main.viscosity18c?.let { data[46] = it }
-        m.main.viscosity25c?.let { data[47] = it }
-        m.main.viscosity40c?.let { data[48] = it }
-        m.main.viscosity60c?.let { data[49] = it }
-        m.main.containerVolumetricCapacity?.let { data[50] = it }
-        m.main.cureWavelength?.let { data[51] = it }
+        m.main.viscosity_18c?.let { data[46] = it }
+        m.main.viscosity_25c?.let { data[47] = it }
+        m.main.viscosity_40c?.let { data[48] = it }
+        m.main.viscosity_60c?.let { data[49] = it }
+        m.main.container_volumetric_capacity?.let { data[50] = it }
+        m.main.cure_wavelength?.let { data[51] = it }
 
         // === Material Abbreviation (Key 52) ===
-        m.main.materialAbbrev?.takeIf { it.isNotBlank() }?.let { data[52] = it }
+        m.main.material_abbreviation?.takeIf { it.isNotBlank() }?.let { data[52] = it }
 
         // === Filament Length (Keys 53-54) ===
-        m.main.nominalFullLength?.let { data[53] = it }
-        m.main.actualFullLength?.let { data[54] = it }
+        m.main.nominal_full_length?.let { data[53] = it }
+        m.main.actual_full_length?.let { data[54] = it }
 
         // === Country of Origin (Key 55) ===
-        m.main.countryOfOrigin?.takeIf { it.isNotBlank() }?.let { data[55] = it }
+        m.main.country_of_origin?.takeIf { it.isNotBlank() }?.let { data[55] = it }
 
         // === Certifications (Key 56) ===
         if (m.main.certifications.isNotEmpty()) {
@@ -238,10 +238,10 @@ class Serializer(
         val data = mutableMapOf<Int, Any>()
 
         // === Aux Region Fields (Keys 0-3) ===
-        m.aux?.consumedWeight?.let { data[0] = it }
+        m.aux?.consumed_weight?.let { data[0] = it }
         m.aux?.workgroup?.takeIf { it.isNotBlank() }?.let { data[1] = it }
-        m.aux?.generalPurposeRangeUser?.takeIf { it.isNotBlank() }?.let { data[2] = it }
-        m.aux?.lastStirTime?.let {
+        m.aux?.general_purpose_range_user?.takeIf { it.isNotBlank() }?.let { data[2] = it }
+        m.aux?.last_stir_time?.let {
             data[3] = getDateEpoch(it)!!
         }
 
@@ -347,7 +347,7 @@ class Serializer(
     private fun decodeCbor(payload: ByteArray) {
         val model = OpenPrintTagModel()
         decodeRegions(payload, model)
-        Log.d("Serializer", "Decoded CBOR: brand=${model.main.brandName}, type=${model.main.materialType}")
+        Log.d("Serializer", "Decoded CBOR: brand=${model.main.brand_name}, type=${model.main.material_type}")
     }
 
     /**
@@ -509,62 +509,62 @@ class Serializer(
         }
 
         // === UUIDs (Keys 0-3) - stored as 16-byte binary ===
-        main.instanceUuid = node.get("0").asFlexibleString()
-        main.packageUuid = node.get("1").asFlexibleString()
-        main.materialUuid = node.get("2").asFlexibleString()
-        main.brandUuid = node.get("3").asFlexibleString()
+        main.instance_uuid = node.get("0").asFlexibleString()
+        main.package_uuid = node.get("1").asFlexibleString()
+        main.material_uuid = node.get("2").asFlexibleString()
+        main.brand_uuid = node.get("3").asFlexibleString()
 
         // === GTIN (Key 4) ===
         main.gtin = node.get("4").asFlexibleString()
 
         // === Brand-Specific IDs (Keys 5-7) ===
-        main.brandSpecificInstanceId = node.get("5").asFlexibleString()
-        main.brandSpecificPackageId = node.get("6").asFlexibleString()
-        main.brandSpecificMaterialId = node.get("7").asFlexibleString()
+        main.brand_specific_instance_id = node.get("5").asFlexibleString()
+        main.brand_specific_package_id = node.get("6").asFlexibleString()
+        main.brand_specific_material_id = node.get("7").asFlexibleString()
 
         // === Material Classification (Keys 8-11) ===
-        main.materialClass = node.get("8").asFlexibleString() ?: "FFF"
-        main.materialType = node.get("9").asFlexibleString()
-        main.materialName = node.get("10").asFlexibleString()
-        main.brandName = node.get("11").asFlexibleString()
+        main.material_class = node.get("8").asFlexibleString() ?: "FFF"
+        main.material_type = node.get("9").asFlexibleString()
+        main.material_name = node.get("10").asFlexibleString()
+        main.brand_name = node.get("11").asFlexibleString()
 
         // === Write Protection (Key 13) - enum ===
-        main.writeProtection = node.get("13").asFlexibleString()
+        main.write_protection = node.get("13").asFlexibleString()
 
         // === Dates (Keys 14, 15) - epoch seconds ===
         node.get("14")?.let { dateNode ->
             if (dateNode.isNumber) {
                 val epochSeconds = dateNode.asLong()
-                main.manufacturedDate = java.time.LocalDate.ofEpochDay(epochSeconds / 86400)
+                main.manufactured_date = java.time.LocalDate.ofEpochDay(epochSeconds / 86400)
             }
         }
         node.get("15")?.let { dateNode ->
             if (dateNode.isNumber) {
                 val epochSeconds = dateNode.asLong()
-                main.expirationDate = java.time.LocalDate.ofEpochDay(epochSeconds / 86400)
+                main.expiration_date = java.time.LocalDate.ofEpochDay(epochSeconds / 86400)
             }
         }
 
         // === Weights (Keys 16-18) - Float per spec ===
-        main.nominalNettoFullWeight = node.get("16").asFlexibleFloat()
-        main.actualNettoFullWeight = node.get("17").asFlexibleFloat()
-        main.emptyContainerWeight = node.get("18").asFlexibleFloat()
+        main.nominal_netto_full_weight = node.get("16").asFlexibleFloat()
+        main.actual_netto_full_weight = node.get("17").asFlexibleFloat()
+        main.empty_container_weight = node.get("18").asFlexibleFloat()
 
         // === Colors (Keys 19-24) - might be bytes or strings ===
-        main.primaryColor = node.get("19").asFlexibleString()
-        main.secondaryColor0 = node.get("20").asFlexibleString()
-        main.secondaryColor1 = node.get("21").asFlexibleString()
-        main.secondaryColor2 = node.get("22").asFlexibleString()
-        main.secondaryColor3 = node.get("23").asFlexibleString()
-        main.secondaryColor4 = node.get("24").asFlexibleString()
+        main.primary_color = node.get("19").asFlexibleString()
+        main.secondary_color_0 = node.get("20").asFlexibleString()
+        main.secondary_color_1 = node.get("21").asFlexibleString()
+        main.secondary_color_2 = node.get("22").asFlexibleString()
+        main.secondary_color_3 = node.get("23").asFlexibleString()
+        main.secondary_color_4 = node.get("24").asFlexibleString()
 
         // === Optical Properties (Key 27) ===
-        main.transmissionDistance = node.get("27").asFlexibleFloat()
+        main.transmission_distance = node.get("27").asFlexibleFloat()
 
         // === Tags & Certifications (Keys 28, 56) - arrays ===
         node.get("28")?.let { tagsNode ->
             if (tagsNode.isArray) {
-                main.materialTags = tagsNode.mapNotNull { it.asFlexibleString() }
+                main.tags = tagsNode.mapNotNull { it.asFlexibleString() }
             }
         }
         node.get("56")?.let { certsNode ->
@@ -575,55 +575,55 @@ class Serializer(
 
         // === Physical Properties (Keys 29-33) ===
         main.density = node.get("29").asFlexibleFloat()
-        main.filamentDiameter = node.get("30").asFlexibleFloat()  // KEY 30! (not deprecated key 12)
-        main.shoreHardnessA = node.get("31").asFlexibleInt()
-        main.shoreHardnessD = node.get("32").asFlexibleInt()
-        main.minNozzleDiameter = node.get("33").asFlexibleFloat()
+        main.filament_diameter = node.get("30").asFlexibleFloat()  // KEY 30! (not deprecated key 12)
+        main.shore_hardness_a = node.get("31").asFlexibleInt()
+        main.shore_hardness_d = node.get("32").asFlexibleInt()
+        main.min_nozzle_diameter = node.get("33").asFlexibleFloat()
 
         // === Temperatures (Keys 34-41) ===
-        main.minPrintTemp = node.get("34").asFlexibleInt()
-        main.maxPrintTemp = node.get("35").asFlexibleInt()
-        main.preheatTemp = node.get("36").asFlexibleInt()
-        main.minBedTemp = node.get("37").asFlexibleInt()
-        main.maxBedTemp = node.get("38").asFlexibleInt()
-        main.minChamberTemp = node.get("39").asFlexibleInt()
-        main.maxChamberTemp = node.get("40").asFlexibleInt()
-        main.chamberTemperature = node.get("41").asFlexibleInt()
+        main.min_print_temperature = node.get("34").asFlexibleInt()
+        main.max_print_temperature = node.get("35").asFlexibleInt()
+        main.preheat_temperature = node.get("36").asFlexibleInt()
+        main.min_bed_temperature = node.get("37").asFlexibleInt()
+        main.max_bed_temperature = node.get("38").asFlexibleInt()
+        main.min_chamber_temperature = node.get("39").asFlexibleInt()
+        main.max_chamber_temperature = node.get("40").asFlexibleInt()
+        main.chamber_temperature = node.get("41").asFlexibleInt()
 
         // === Container Dimensions (Keys 42-45) - FFF spool ===
-        main.containerWidth = node.get("42").asFlexibleInt()
-        main.containerOuterDiameter = node.get("43").asFlexibleInt()
-        main.containerInnerDiameter = node.get("44").asFlexibleInt()
-        main.containerHoleDiameter = node.get("45").asFlexibleInt()
+        main.container_width = node.get("42").asFlexibleInt()
+        main.container_outer_diameter = node.get("43").asFlexibleInt()
+        main.container_inner_diameter = node.get("44").asFlexibleInt()
+        main.container_hole_diameter = node.get("45").asFlexibleInt()
 
         // === SLA-Specific Fields (Keys 46-51) ===
-        main.viscosity18c = node.get("46").asFlexibleFloat()
-        main.viscosity25c = node.get("47").asFlexibleFloat()
-        main.viscosity40c = node.get("48").asFlexibleFloat()
-        main.viscosity60c = node.get("49").asFlexibleFloat()
-        main.containerVolumetricCapacity = node.get("50").asFlexibleFloat()
-        main.cureWavelength = node.get("51").asFlexibleInt()
+        main.viscosity_18c = node.get("46").asFlexibleFloat()
+        main.viscosity_25c = node.get("47").asFlexibleFloat()
+        main.viscosity_40c = node.get("48").asFlexibleFloat()
+        main.viscosity_60c = node.get("49").asFlexibleFloat()
+        main.container_volumetric_capacity = node.get("50").asFlexibleFloat()
+        main.cure_wavelength = node.get("51").asFlexibleInt()
 
         // === Material Abbreviation (Key 52) ===
-        main.materialAbbrev = node.get("52").asFlexibleString()
+        main.material_abbreviation = node.get("52").asFlexibleString()
 
         // === Filament Length (Keys 53-54) ===
-        main.nominalFullLength = node.get("53").asFlexibleFloat()
-        main.actualFullLength = node.get("54").asFlexibleFloat()
+        main.nominal_full_length = node.get("53").asFlexibleFloat()
+        main.actual_full_length = node.get("54").asFlexibleFloat()
 
         // === Country of Origin (Key 55) ===
-        main.countryOfOrigin = node.get("55").asFlexibleString()
+        main.country_of_origin = node.get("55").asFlexibleString()
 
         // === Post-process enum values (reverse lookup) ===
-        main.materialType = typeMap.entries.find {
-            it.value.toString() == main.materialType
-        }?.key ?: main.materialType
+        main.material_type = typeMap.entries.find {
+            it.value.toString() == main.material_type
+        }?.key ?: main.material_type
 
-        main.materialClass = classMap.entries.find {
-            it.value.toString() == main.materialClass
-        }?.key ?: main.materialClass
+        main.material_class = classMap.entries.find {
+            it.value.toString() == main.material_class
+        }?.key ?: main.material_class
 
-        main.materialTags = main.materialTags.map { tagId ->
+        main.tags = main.tags.map { tagId ->
             tagsMap.entries.find { it.value.toString() == tagId }?.key ?: tagId
         }
 
@@ -660,15 +660,15 @@ class Serializer(
         }
 
         // === Aux Region Fields (Keys 0-3) ===
-        aux.consumedWeight = node.get("0").asFlexibleFloat()
+        aux.consumed_weight = node.get("0").asFlexibleFloat()
         aux.workgroup = node.get("1").asFlexibleString()
-        aux.generalPurposeRangeUser = node.get("2").asFlexibleString()
+        aux.general_purpose_range_user = node.get("2").asFlexibleString()
 
-        // lastStirTime (key 3) - epoch seconds
+        // last_stir_time (key 3) - epoch seconds
         node.get("3")?.let { dateNode ->
             if (dateNode.isNumber) {
                 val epochSeconds = dateNode.asLong()
-                aux.lastStirTime = java.time.LocalDate.ofEpochDay(epochSeconds / 86400)
+                aux.last_stir_time = java.time.LocalDate.ofEpochDay(epochSeconds / 86400)
             }
         }
 
@@ -692,28 +692,28 @@ class Serializer(
             // 3. Post-process Enum values (Reverse Lookup)
             mainRegion.apply {
                 // Convert Material Type: "0" (as string from CBOR) -> "PLA"
-                materialType = typeMap.entries.find { 
-                    it.value.toString() == materialType 
-                }?.key ?: materialType
+                material_type = typeMap.entries.find {
+                    it.value.toString() == material_type
+                }?.key ?: material_type
 
                 // Convert Material Class: "0" -> "FFF"
-                materialClass = classMap.entries.find { 
-                    it.value.toString() == materialClass 
-                }?.key ?: materialClass
+                material_class = classMap.entries.find {
+                    it.value.toString() == material_class
+                }?.key ?: material_class
 
                 // 4. Corrected Tags Mapping
                 // We map the LIST of tags from the model, not the dictionary.
-                materialTags = materialTags.map { tagId ->
+                tags = tags.map { tagId ->
                     // Look up the tagId (e.g., "52") in your YAML-loaded map
-                    tagsMap.entries.find { 
-                        it.value.toString() == tagId 
+                    tagsMap.entries.find {
+                        it.value.toString() == tagId
                     }?.key ?: tagId
                 }
-                
+
                 // Do the same for certifications if applicable
                 certifications = certifications.map { certId ->
-                    certsMap.entries.find { 
-                        it.value.toString() == certId 
+                    certsMap.entries.find {
+                        it.value.toString() == certId
                     }?.key ?: certId
                 }
             }

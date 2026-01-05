@@ -644,82 +644,82 @@ class GeneratorActivity : AppCompatActivity() {
         val main = model.main
 
         // Identity
-        main.brandName = binding.getBrand.text?.toString()?.takeIf { it.isNotBlank() }
-        main.materialName = binding.getMaterialName.text?.toString()?.takeIf { it.isNotBlank() }
+        main.brand_name = binding.getBrand.text?.toString()?.takeIf { it.isNotBlank() }
+        main.material_name = binding.getMaterialName.text?.toString()?.takeIf { it.isNotBlank() }
         main.gtin = binding.getGtin.text?.toString()?.takeIf { it.isNotBlank() }
-        main.countryOfOrigin = binding.getCountryOfOrigin.text?.toString()?.takeIf { it.isNotBlank() }
+        main.country_of_origin = binding.getCountryOfOrigin.text?.toString()?.takeIf { it.isNotBlank() }
 
         // Material classification
-        main.materialClass = binding.autoCompleteMaterialClass.text?.toString()?.ifBlank { "FFF" } ?: "FFF"
-        main.materialType = binding.autoCompleteMaterialType.text?.toString()?.takeIf { it.isNotBlank() }
-        main.materialAbbrev = binding.getMaterialAbbrev.text?.toString()?.takeIf { it.isNotBlank() }
+        main.material_class = binding.autoCompleteMaterialClass.text?.toString()?.ifBlank { "FFF" } ?: "FFF"
+        main.material_type = binding.autoCompleteMaterialType.text?.toString()?.takeIf { it.isNotBlank() }
+        main.material_abbreviation = binding.getMaterialAbbrev.text?.toString()?.takeIf { it.isNotBlank() }
 
         // Colors
-        main.primaryColor = primaryColorHex
-        main.secondaryColor0 = secondaryColor0Hex
-        main.secondaryColor1 = secondaryColor1Hex
-        main.secondaryColor2 = secondaryColor2Hex
-        main.secondaryColor3 = secondaryColor3Hex
-        main.secondaryColor4 = secondaryColor4Hex
+        main.primary_color = primaryColorHex
+        main.secondary_color_0 = secondaryColor0Hex
+        main.secondary_color_1 = secondaryColor1Hex
+        main.secondary_color_2 = secondaryColor2Hex
+        main.secondary_color_3 = secondaryColor3Hex
+        main.secondary_color_4 = secondaryColor4Hex
 
         // Weights
-        main.nominalNettoFullWeight = binding.getNominalWeight.text?.toString()?.toFloatOrNull()
-        main.actualNettoFullWeight = binding.getActualWeight.text?.toString()?.toFloatOrNull()
-        main.emptyContainerWeight = binding.getEmptyContainerWeight.text?.toString()?.toFloatOrNull()
+        main.nominal_netto_full_weight = binding.getNominalWeight.text?.toString()?.toFloatOrNull()
+        main.actual_netto_full_weight = binding.getActualWeight.text?.toString()?.toFloatOrNull()
+        main.empty_container_weight = binding.getEmptyContainerWeight.text?.toString()?.toFloatOrNull()
 
         // Physical properties
-        main.filamentDiameter = binding.getFilamentDiameter.text?.toString()?.toFloatOrNull()
+        main.filament_diameter = binding.getFilamentDiameter.text?.toString()?.toFloatOrNull()
         main.density = binding.getDensity.text?.toString()?.toFloatOrNull()
-        main.minNozzleDiameter = binding.getMinNozzleDiameter.text?.toString()?.toFloatOrNull()
-        main.shoreHardnessA = binding.getShoreHardnessA.text?.toString()?.toIntOrNull()
-        main.shoreHardnessD = binding.getShoreHardnessD.text?.toString()?.toIntOrNull()
-        main.nominalFullLength = binding.getNominalLength.text?.toString()?.toFloatOrNull()
-        main.actualFullLength = binding.getActualLength.text?.toString()?.toFloatOrNull()
+        main.min_nozzle_diameter = binding.getMinNozzleDiameter.text?.toString()?.toFloatOrNull()
+        main.shore_hardness_a = binding.getShoreHardnessA.text?.toString()?.toIntOrNull()
+        main.shore_hardness_d = binding.getShoreHardnessD.text?.toString()?.toIntOrNull()
+        main.nominal_full_length = binding.getNominalLength.text?.toString()?.toFloatOrNull()
+        main.actual_full_length = binding.getActualLength.text?.toString()?.toFloatOrNull()
 
         // Temperatures
-        main.minPrintTemp = binding.getMinTemp.text?.toString()?.toIntOrNull()
-        main.maxPrintTemp = binding.getMaxTemp.text?.toString()?.toIntOrNull()
-        main.minBedTemp = binding.getMinBedTemp.text?.toString()?.toIntOrNull()
-        main.maxBedTemp = binding.getMaxBedTemp.text?.toString()?.toIntOrNull()
-        main.minChamberTemp = binding.getMinChamberTemp.text?.toString()?.toIntOrNull()
-        main.maxChamberTemp = binding.getMaxChamberTemp.text?.toString()?.toIntOrNull()
-        main.preheatTemp = binding.getPreheatTemp.text?.toString()?.toIntOrNull()
-        main.chamberTemperature = binding.getChamberTemp.text?.toString()?.toIntOrNull()
+        main.min_print_temperature = binding.getMinTemp.text?.toString()?.toIntOrNull()
+        main.max_print_temperature = binding.getMaxTemp.text?.toString()?.toIntOrNull()
+        main.min_bed_temperature = binding.getMinBedTemp.text?.toString()?.toIntOrNull()
+        main.max_bed_temperature = binding.getMaxBedTemp.text?.toString()?.toIntOrNull()
+        main.min_chamber_temperature = binding.getMinChamberTemp.text?.toString()?.toIntOrNull()
+        main.max_chamber_temperature = binding.getMaxChamberTemp.text?.toString()?.toIntOrNull()
+        main.preheat_temperature = binding.getPreheatTemp.text?.toString()?.toIntOrNull()
+        main.chamber_temperature = binding.getChamberTemp.text?.toString()?.toIntOrNull()
 
         // Container dimensions
-        main.containerWidth = binding.getContainerWidth.text?.toString()?.toIntOrNull()
-        main.containerOuterDiameter = binding.getContainerOuterDiameter.text?.toString()?.toIntOrNull()
-        main.containerInnerDiameter = binding.getContainerInnerDiameter.text?.toString()?.toIntOrNull()
-        main.containerHoleDiameter = binding.getContainerHoleDiameter.text?.toString()?.toIntOrNull()
+        main.container_width = binding.getContainerWidth.text?.toString()?.toIntOrNull()
+        main.container_outer_diameter = binding.getContainerOuterDiameter.text?.toString()?.toIntOrNull()
+        main.container_inner_diameter = binding.getContainerInnerDiameter.text?.toString()?.toIntOrNull()
+        main.container_hole_diameter = binding.getContainerHoleDiameter.text?.toString()?.toIntOrNull()
 
         // SLA properties
-        main.viscosity18c = binding.getViscosity18c.text?.toString()?.toFloatOrNull()
-        main.viscosity25c = binding.getViscosity25c.text?.toString()?.toFloatOrNull()
-        main.viscosity40c = binding.getViscosity40c.text?.toString()?.toFloatOrNull()
-        main.viscosity60c = binding.getViscosity60c.text?.toString()?.toFloatOrNull()
-        main.cureWavelength = binding.getCureWavelength.text?.toString()?.toIntOrNull()
-        main.containerVolumetricCapacity = binding.getContainerVolume.text?.toString()?.toFloatOrNull()
+        main.viscosity_18c = binding.getViscosity18c.text?.toString()?.toFloatOrNull()
+        main.viscosity_25c = binding.getViscosity25c.text?.toString()?.toFloatOrNull()
+        main.viscosity_40c = binding.getViscosity40c.text?.toString()?.toFloatOrNull()
+        main.viscosity_60c = binding.getViscosity60c.text?.toString()?.toFloatOrNull()
+        main.cure_wavelength = binding.getCureWavelength.text?.toString()?.toIntOrNull()
+        main.container_volumetric_capacity = binding.getContainerVolume.text?.toString()?.toFloatOrNull()
 
         // Dates
-        main.manufacturedDate = manufacturedDate
-        main.expirationDate = expirationDate
+        main.manufactured_date = manufacturedDate
+        main.expiration_date = expirationDate
 
         // UUIDs
-        main.instanceUuid = binding.getInstanceUuid.text?.toString()?.takeIf { it.isNotBlank() }
-        main.packageUuid = binding.getPackageUuid.text?.toString()?.takeIf { it.isNotBlank() }
-        main.materialUuid = binding.getMaterialUuid.text?.toString()?.takeIf { it.isNotBlank() }
-        main.brandUuid = binding.getBrandUuid.text?.toString()?.takeIf { it.isNotBlank() }
+        main.instance_uuid = binding.getInstanceUuid.text?.toString()?.takeIf { it.isNotBlank() }
+        main.package_uuid = binding.getPackageUuid.text?.toString()?.takeIf { it.isNotBlank() }
+        main.material_uuid = binding.getMaterialUuid.text?.toString()?.takeIf { it.isNotBlank() }
+        main.brand_uuid = binding.getBrandUuid.text?.toString()?.takeIf { it.isNotBlank() }
 
         // Brand-specific IDs
-        main.brandSpecificInstanceId = binding.getBrandInstanceId.text?.toString()?.takeIf { it.isNotBlank() }
-        main.brandSpecificPackageId = binding.getBrandPackageId.text?.toString()?.takeIf { it.isNotBlank() }
-        main.brandSpecificMaterialId = binding.getBrandMaterialId.text?.toString()?.takeIf { it.isNotBlank() }
+        main.brand_specific_instance_id = binding.getBrandInstanceId.text?.toString()?.takeIf { it.isNotBlank() }
+        main.brand_specific_package_id = binding.getBrandPackageId.text?.toString()?.takeIf { it.isNotBlank() }
+        main.brand_specific_material_id = binding.getBrandMaterialId.text?.toString()?.takeIf { it.isNotBlank() }
 
         // Write protection
-        main.writeProtection = binding.autoCompleteWriteProtection.text?.toString()?.takeIf { it.isNotBlank() && it != "None" }
+        main.write_protection = binding.autoCompleteWriteProtection.text?.toString()?.takeIf { it.isNotBlank() && it != "None" }
 
         // Tags and certifications
-        main.materialTags = allTagOptions.filter { it.key in currentSelectedTagKeys }.map { it.name }
+        main.tags = allTagOptions.filter { it.key in currentSelectedTagKeys }.map { it.name }
         main.certifications = allCertOptions.filter { it.key in currentSelectedCertKeys }.map { it.display_name }
 
         return model
@@ -729,94 +729,94 @@ class GeneratorActivity : AppCompatActivity() {
         val main = model.main
 
         // Identity
-        main.brandName?.takeIf { it.isNotBlank() }?.let { binding.getBrand.setText(it) }
-        main.materialName?.takeIf { it.isNotBlank() }?.let { binding.getMaterialName.setText(it) }
+        main.brand_name?.takeIf { it.isNotBlank() }?.let { binding.getBrand.setText(it) }
+        main.material_name?.takeIf { it.isNotBlank() }?.let { binding.getMaterialName.setText(it) }
         main.gtin?.takeIf { it.isNotBlank() }?.let { binding.getGtin.setText(it) }
-        main.countryOfOrigin?.takeIf { it.isNotBlank() }?.let { binding.getCountryOfOrigin.setText(it) }
+        main.country_of_origin?.takeIf { it.isNotBlank() }?.let { binding.getCountryOfOrigin.setText(it) }
 
         // Material classification
-        main.materialClass.takeIf { it.isNotBlank() }?.let { binding.autoCompleteMaterialClass.setText(it, false) }
-        main.materialType?.takeIf { it.isNotBlank() }?.let { binding.autoCompleteMaterialType.setText(it, false) }
-        main.materialAbbrev?.takeIf { it.isNotBlank() }?.let { binding.getMaterialAbbrev.setText(it) }
+        main.material_class.takeIf { it.isNotBlank() }?.let { binding.autoCompleteMaterialClass.setText(it, false) }
+        main.material_type?.takeIf { it.isNotBlank() }?.let { binding.autoCompleteMaterialType.setText(it, false) }
+        main.material_abbreviation?.takeIf { it.isNotBlank() }?.let { binding.getMaterialAbbrev.setText(it) }
 
         // Colors
-        main.primaryColor?.takeIf { it.isNotBlank() }?.let { hex ->
+        main.primary_color?.takeIf { it.isNotBlank() }?.let { hex ->
             binding.getColor.setText(hex)
             primaryColorHex = hex
             updateColorButtonFromText(hex, binding.colorButton)
         }
-        main.secondaryColor0?.let { setSecondaryColor(it, binding.getSecondaryColor0, binding.colorButton0) { secondaryColor0Hex = it } }
-        main.secondaryColor1?.let { setSecondaryColor(it, binding.getSecondaryColor1, binding.colorButton1) { secondaryColor1Hex = it } }
-        main.secondaryColor2?.let { setSecondaryColor(it, binding.getSecondaryColor2, binding.colorButton2) { secondaryColor2Hex = it } }
-        main.secondaryColor3?.let { setSecondaryColor(it, binding.getSecondaryColor3, binding.colorButton3) { secondaryColor3Hex = it } }
-        main.secondaryColor4?.let { setSecondaryColor(it, binding.getSecondaryColor4, binding.colorButton4) { secondaryColor4Hex = it } }
+        main.secondary_color_0?.let { setSecondaryColor(it, binding.getSecondaryColor0, binding.colorButton0) { secondaryColor0Hex = it } }
+        main.secondary_color_1?.let { setSecondaryColor(it, binding.getSecondaryColor1, binding.colorButton1) { secondaryColor1Hex = it } }
+        main.secondary_color_2?.let { setSecondaryColor(it, binding.getSecondaryColor2, binding.colorButton2) { secondaryColor2Hex = it } }
+        main.secondary_color_3?.let { setSecondaryColor(it, binding.getSecondaryColor3, binding.colorButton3) { secondaryColor3Hex = it } }
+        main.secondary_color_4?.let { setSecondaryColor(it, binding.getSecondaryColor4, binding.colorButton4) { secondaryColor4Hex = it } }
 
         // Weights
-        main.nominalNettoFullWeight?.let { binding.getNominalWeight.setText(it.toString()) }
-        main.actualNettoFullWeight?.let { binding.getActualWeight.setText(it.toString()) }
-        main.emptyContainerWeight?.let { binding.getEmptyContainerWeight.setText(it.toString()) }
+        main.nominal_netto_full_weight?.let { binding.getNominalWeight.setText(it.toString()) }
+        main.actual_netto_full_weight?.let { binding.getActualWeight.setText(it.toString()) }
+        main.empty_container_weight?.let { binding.getEmptyContainerWeight.setText(it.toString()) }
 
         // Physical properties
-        main.filamentDiameter?.let { binding.getFilamentDiameter.setText(it.toString()) }
+        main.filament_diameter?.let { binding.getFilamentDiameter.setText(it.toString()) }
         main.density?.let { binding.getDensity.setText(it.toString()) }
-        main.minNozzleDiameter?.let { binding.getMinNozzleDiameter.setText(it.toString()) }
-        main.shoreHardnessA?.let { binding.getShoreHardnessA.setText(it.toString()) }
-        main.shoreHardnessD?.let { binding.getShoreHardnessD.setText(it.toString()) }
-        main.nominalFullLength?.let { binding.getNominalLength.setText(it.toString()) }
-        main.actualFullLength?.let { binding.getActualLength.setText(it.toString()) }
+        main.min_nozzle_diameter?.let { binding.getMinNozzleDiameter.setText(it.toString()) }
+        main.shore_hardness_a?.let { binding.getShoreHardnessA.setText(it.toString()) }
+        main.shore_hardness_d?.let { binding.getShoreHardnessD.setText(it.toString()) }
+        main.nominal_full_length?.let { binding.getNominalLength.setText(it.toString()) }
+        main.actual_full_length?.let { binding.getActualLength.setText(it.toString()) }
 
         // Temperatures
-        main.minPrintTemp?.let { binding.getMinTemp.setText(it.toString()) }
-        main.maxPrintTemp?.let { binding.getMaxTemp.setText(it.toString()) }
-        main.minBedTemp?.let { binding.getMinBedTemp.setText(it.toString()) }
-        main.maxBedTemp?.let { binding.getMaxBedTemp.setText(it.toString()) }
-        main.minChamberTemp?.let { binding.getMinChamberTemp.setText(it.toString()) }
-        main.maxChamberTemp?.let { binding.getMaxChamberTemp.setText(it.toString()) }
-        main.preheatTemp?.let { binding.getPreheatTemp.setText(it.toString()) }
-        main.chamberTemperature?.let { binding.getChamberTemp.setText(it.toString()) }
+        main.min_print_temperature?.let { binding.getMinTemp.setText(it.toString()) }
+        main.max_print_temperature?.let { binding.getMaxTemp.setText(it.toString()) }
+        main.min_bed_temperature?.let { binding.getMinBedTemp.setText(it.toString()) }
+        main.max_bed_temperature?.let { binding.getMaxBedTemp.setText(it.toString()) }
+        main.min_chamber_temperature?.let { binding.getMinChamberTemp.setText(it.toString()) }
+        main.max_chamber_temperature?.let { binding.getMaxChamberTemp.setText(it.toString()) }
+        main.preheat_temperature?.let { binding.getPreheatTemp.setText(it.toString()) }
+        main.chamber_temperature?.let { binding.getChamberTemp.setText(it.toString()) }
 
         // Container dimensions
-        main.containerWidth?.let { binding.getContainerWidth.setText(it.toString()) }
-        main.containerOuterDiameter?.let { binding.getContainerOuterDiameter.setText(it.toString()) }
-        main.containerInnerDiameter?.let { binding.getContainerInnerDiameter.setText(it.toString()) }
-        main.containerHoleDiameter?.let { binding.getContainerHoleDiameter.setText(it.toString()) }
+        main.container_width?.let { binding.getContainerWidth.setText(it.toString()) }
+        main.container_outer_diameter?.let { binding.getContainerOuterDiameter.setText(it.toString()) }
+        main.container_inner_diameter?.let { binding.getContainerInnerDiameter.setText(it.toString()) }
+        main.container_hole_diameter?.let { binding.getContainerHoleDiameter.setText(it.toString()) }
 
         // SLA properties
-        main.viscosity18c?.let { binding.getViscosity18c.setText(it.toString()) }
-        main.viscosity25c?.let { binding.getViscosity25c.setText(it.toString()) }
-        main.viscosity40c?.let { binding.getViscosity40c.setText(it.toString()) }
-        main.viscosity60c?.let { binding.getViscosity60c.setText(it.toString()) }
-        main.cureWavelength?.let { binding.getCureWavelength.setText(it.toString()) }
-        main.containerVolumetricCapacity?.let { binding.getContainerVolume.setText(it.toString()) }
+        main.viscosity_18c?.let { binding.getViscosity18c.setText(it.toString()) }
+        main.viscosity_25c?.let { binding.getViscosity25c.setText(it.toString()) }
+        main.viscosity_40c?.let { binding.getViscosity40c.setText(it.toString()) }
+        main.viscosity_60c?.let { binding.getViscosity60c.setText(it.toString()) }
+        main.cure_wavelength?.let { binding.getCureWavelength.setText(it.toString()) }
+        main.container_volumetric_capacity?.let { binding.getContainerVolume.setText(it.toString()) }
 
         // Dates
-        main.manufacturedDate?.let { date ->
+        main.manufactured_date?.let { date ->
             manufacturedDate = date
             binding.getManufacturedDate.setText(date.format(dateFormatter))
         }
-        main.expirationDate?.let { date ->
+        main.expiration_date?.let { date ->
             expirationDate = date
             binding.getExpirationDate.setText(date.format(dateFormatter))
         }
 
         // UUIDs
-        main.instanceUuid?.let { binding.getInstanceUuid.setText(it) }
-        main.packageUuid?.let { binding.getPackageUuid.setText(it) }
-        main.materialUuid?.let { binding.getMaterialUuid.setText(it) }
-        main.brandUuid?.let { binding.getBrandUuid.setText(it) }
+        main.instance_uuid?.let { binding.getInstanceUuid.setText(it) }
+        main.package_uuid?.let { binding.getPackageUuid.setText(it) }
+        main.material_uuid?.let { binding.getMaterialUuid.setText(it) }
+        main.brand_uuid?.let { binding.getBrandUuid.setText(it) }
 
         // Brand-specific IDs
-        main.brandSpecificInstanceId?.let { binding.getBrandInstanceId.setText(it) }
-        main.brandSpecificPackageId?.let { binding.getBrandPackageId.setText(it) }
-        main.brandSpecificMaterialId?.let { binding.getBrandMaterialId.setText(it) }
+        main.brand_specific_instance_id?.let { binding.getBrandInstanceId.setText(it) }
+        main.brand_specific_package_id?.let { binding.getBrandPackageId.setText(it) }
+        main.brand_specific_material_id?.let { binding.getBrandMaterialId.setText(it) }
 
         // Write protection
-        main.writeProtection?.let { binding.autoCompleteWriteProtection.setText(it, false) }
+        main.write_protection?.let { binding.autoCompleteWriteProtection.setText(it, false) }
 
         // Tags
-        if (main.materialTags.isNotEmpty()) {
+        if (main.tags.isNotEmpty()) {
             currentSelectedTagKeys.clear()
-            main.materialTags.forEach { name ->
+            main.tags.forEach { name ->
                 tagsMap[name]?.let { currentSelectedTagKeys.add(it) }
             }
             updateTagChips()

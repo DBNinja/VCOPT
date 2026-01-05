@@ -21,8 +21,8 @@ class SerializerUnitTest {
         return OpenPrintTagModel(
             meta = null,
             main = MainRegion().apply {
-                brandName = "TestBrand"
-                materialName = "TestMat"
+                brand_name = "TestBrand"
+                material_name = "TestMat"
             }
         )
     }
@@ -31,19 +31,19 @@ class SerializerUnitTest {
         return OpenPrintTagModel(
             meta = null,
             main = MainRegion().apply {
-                materialClass = "FFF"
-                materialType = "PLA"
-                brandName = "TestBrand"
-                materialName = "TestMaterial"
-                primaryColor = "FF5500"
+                material_class = "FFF"
+                material_type = "PLA"
+                brand_name = "TestBrand"
+                material_name = "TestMaterial"
+                primary_color = "FF5500"
                 gtin = "12345678"
                 density = 1.24f
-                minPrintTemp = 190
-                maxPrintTemp = 230
-                materialTags = listOf("food_safe", "uv_resistant")
+                min_print_temperature = 190
+                max_print_temperature = 230
+                tags = listOf("food_safe", "uv_resistant")
             },
             aux = AuxRegion().apply {
-                consumedWeight = 500f
+                consumed_weight = 500f
                 workgroup = "TestGroup"
             }
         )
@@ -88,7 +88,7 @@ class SerializerUnitTest {
         val modelWithNulls = OpenPrintTagModel(
             meta = null,
             main = MainRegion().apply {
-                brandName = "TestBrand"
+                brand_name = "TestBrand"
                 // All other fields are null
             }
         )
@@ -107,8 +107,8 @@ class SerializerUnitTest {
         val model = OpenPrintTagModel(
             meta = null,
             main = MainRegion().apply {
-                brandName = ""
-                materialName = "Test"
+                brand_name = ""
+                material_name = "Test"
             }
         )
 
@@ -123,8 +123,8 @@ class SerializerUnitTest {
         val model = OpenPrintTagModel(
             meta = null,
             main = MainRegion().apply {
-                brandName = "Test"
-                materialTags = listOf("food_safe", "esd_safe")
+                brand_name = "Test"
+                tags = listOf("food_safe", "esd_safe")
             }
         )
 
@@ -141,8 +141,8 @@ class SerializerUnitTest {
         val model = OpenPrintTagModel(
             meta = null,
             main = MainRegion().apply {
-                brandName = "Test & Co."
-                materialName = "PLA+ Special™"
+                brand_name = "Test & Co."
+                material_name = "PLA+ Special™"
             }
         )
 
@@ -157,8 +157,8 @@ class SerializerUnitTest {
         val model = OpenPrintTagModel(
             meta = null,
             main = MainRegion().apply {
-                brandName = "测试品牌"  // Chinese characters
-                materialName = "日本製品"  // Japanese characters
+                brand_name = "测试品牌"  // Chinese characters
+                material_name = "日本製品"  // Japanese characters
             }
         )
 

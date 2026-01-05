@@ -92,23 +92,23 @@ object TagDisplayBuilder {
         val items = mutableListOf<TagDisplayItem>()
         val main = model.main
         val aux = model.aux
-        val materialClass = main.materialClass
+        val materialClass = main.material_class
 
         // 1. Material Header (always shown)
         val secondaryColors = listOfNotNull(
-            main.secondaryColor0,
-            main.secondaryColor1,
-            main.secondaryColor2,
-            main.secondaryColor3,
-            main.secondaryColor4
+            main.secondary_color_0,
+            main.secondary_color_1,
+            main.secondary_color_2,
+            main.secondary_color_3,
+            main.secondary_color_4
         )
 
         items.add(TagDisplayItem.MaterialHeader(
-            brandName = main.brandName,
-            materialName = main.materialName,
-            materialType = main.materialType,
+            brandName = main.brand_name,
+            materialName = main.material_name,
+            materialType = main.material_type,
             materialClass = materialClass,
-            primaryColor = main.primaryColor,
+            primaryColor = main.primary_color,
             secondaryColors = secondaryColors
         ))
 
@@ -138,11 +138,11 @@ object TagDisplayBuilder {
         }
 
         // 5. Usage Tracking (from AuxRegion)
-        if (aux != null && (aux.consumedWeight != null || main.nominalNettoFullWeight != null)) {
+        if (aux != null && (aux.consumed_weight != null || main.nominal_netto_full_weight != null)) {
             items.add(TagDisplayItem.SectionHeader("Usage"))
             items.add(TagDisplayItem.UsageProgress(
-                totalWeight = main.nominalNettoFullWeight,
-                consumedWeight = aux.consumedWeight,
+                totalWeight = main.nominal_netto_full_weight,
+                consumedWeight = aux.consumed_weight,
                 workgroup = aux.workgroup
             ))
         }
@@ -157,9 +157,9 @@ object TagDisplayBuilder {
         }
 
         // 7. Tags & Certifications
-        if (main.materialTags.isNotEmpty()) {
+        if (main.tags.isNotEmpty()) {
             items.add(TagDisplayItem.SectionHeader("Tags"))
-            items.add(TagDisplayItem.ChipGroup(main.materialTags, isOutlined = false))
+            items.add(TagDisplayItem.ChipGroup(main.tags, isOutlined = false))
         }
 
         if (main.certifications.isNotEmpty()) {
@@ -181,14 +181,14 @@ object TagDisplayBuilder {
         val props = mutableListOf<TagDisplayItem>()
 
         // Filament Diameter (FFF)
-        main.filamentDiameter?.let {
+        main.filament_diameter?.let {
             props.add(TagDisplayItem.PropertyRow("Diameter", "${it}mm"))
         }
 
         // Weight with actual comparison
-        if (main.nominalNettoFullWeight != null || main.actualNettoFullWeight != null) {
-            val nominal = main.nominalNettoFullWeight?.let { "${it.toInt()}g" } ?: "N/A"
-            val actual = main.actualNettoFullWeight?.let { "(actual: ${it.toInt()}g)" }
+        if (main.nominal_netto_full_weight != null || main.actual_netto_full_weight != null) {
+            val nominal = main.nominal_netto_full_weight?.let { "${it.toInt()}g" } ?: "N/A"
+            val actual = main.actual_netto_full_weight?.let { "(actual: ${it.toInt()}g)" }
             props.add(TagDisplayItem.PropertyRow("Weight", nominal, actual))
         }
 
@@ -198,24 +198,24 @@ object TagDisplayBuilder {
         }
 
         // Length with actual comparison
-        if (main.nominalFullLength != null || main.actualFullLength != null) {
-            val nominal = main.nominalFullLength?.let { "${it}m" } ?: "N/A"
-            val actual = main.actualFullLength?.let { "(actual: ${it}m)" }
+        if (main.nominal_full_length != null || main.actual_full_length != null) {
+            val nominal = main.nominal_full_length?.let { "${it}m" } ?: "N/A"
+            val actual = main.actual_full_length?.let { "(actual: ${it}m)" }
             props.add(TagDisplayItem.PropertyRow("Length", nominal, actual))
         }
 
         // Shore Hardness (for TPU and other flexible materials)
-        if (main.shoreHardnessA != null || main.shoreHardnessD != null) {
+        if (main.shore_hardness_a != null || main.shore_hardness_d != null) {
             val hardness = buildString {
-                main.shoreHardnessA?.let { append("${it}A") }
-                if (main.shoreHardnessA != null && main.shoreHardnessD != null) append(" / ")
-                main.shoreHardnessD?.let { append("${it}D") }
+                main.shore_hardness_a?.let { append("${it}A") }
+                if (main.shore_hardness_a != null && main.shore_hardness_d != null) append(" / ")
+                main.shore_hardness_d?.let { append("${it}D") }
             }
             props.add(TagDisplayItem.PropertyRow("Shore Hardness", hardness))
         }
 
         // Min Nozzle Diameter
-        main.minNozzleDiameter?.let {
+        main.min_nozzle_diameter?.let {
             props.add(TagDisplayItem.PropertyRow("Min Nozzle", "${it}mm"))
         }
 
@@ -226,24 +226,24 @@ object TagDisplayBuilder {
         val props = mutableListOf<TagDisplayItem>()
 
         // Print Temperature Range
-        if (main.minPrintTemp != null || main.maxPrintTemp != null) {
-            props.add(TagDisplayItem.TemperatureRow("Print", main.minPrintTemp, main.maxPrintTemp))
+        if (main.min_print_temperature != null || main.max_print_temperature != null) {
+            props.add(TagDisplayItem.TemperatureRow("Print", main.min_print_temperature, main.max_print_temperature))
         }
 
         // Bed Temperature Range
-        if (main.minBedTemp != null || main.maxBedTemp != null) {
-            props.add(TagDisplayItem.TemperatureRow("Bed", main.minBedTemp, main.maxBedTemp))
+        if (main.min_bed_temperature != null || main.max_bed_temperature != null) {
+            props.add(TagDisplayItem.TemperatureRow("Bed", main.min_bed_temperature, main.max_bed_temperature))
         }
 
         // Chamber Temperature
-        if (main.minChamberTemp != null || main.maxChamberTemp != null) {
-            props.add(TagDisplayItem.TemperatureRow("Chamber", main.minChamberTemp, main.maxChamberTemp))
-        } else if (main.chamberTemperature != null) {
-            props.add(TagDisplayItem.TemperatureRow("Chamber", null, null, main.chamberTemperature))
+        if (main.min_chamber_temperature != null || main.max_chamber_temperature != null) {
+            props.add(TagDisplayItem.TemperatureRow("Chamber", main.min_chamber_temperature, main.max_chamber_temperature))
+        } else if (main.chamber_temperature != null) {
+            props.add(TagDisplayItem.TemperatureRow("Chamber", null, null, main.chamber_temperature))
         }
 
         // Preheat Temperature
-        main.preheatTemp?.let {
+        main.preheat_temperature?.let {
             props.add(TagDisplayItem.TemperatureRow("Preheat", null, null, it))
         }
 
@@ -254,17 +254,17 @@ object TagDisplayBuilder {
         val props = mutableListOf<TagDisplayItem>()
 
         // Viscosity at different temperatures
-        main.viscosity25c?.let {
+        main.viscosity_25c?.let {
             props.add(TagDisplayItem.PropertyRow("Viscosity @ 25°C", "${it} cP"))
         }
 
         // Cure Wavelength
-        main.cureWavelength?.let {
+        main.cure_wavelength?.let {
             props.add(TagDisplayItem.PropertyRow("Cure Wavelength", "${it}nm"))
         }
 
         // Container Volume
-        main.containerVolumetricCapacity?.let {
+        main.container_volumetric_capacity?.let {
             props.add(TagDisplayItem.PropertyRow("Container Volume", "${it}ml"))
         }
 
@@ -275,15 +275,15 @@ object TagDisplayBuilder {
         val props = mutableListOf<TagDisplayItem>()
 
         // Spool dimensions
-        main.containerOuterDiameter?.let {
+        main.container_outer_diameter?.let {
             props.add(TagDisplayItem.PropertyRow("Outer Diameter", "${it}mm"))
         }
 
-        main.containerWidth?.let {
+        main.container_width?.let {
             props.add(TagDisplayItem.PropertyRow("Width", "${it}mm"))
         }
 
-        main.containerHoleDiameter?.let {
+        main.container_hole_diameter?.let {
             props.add(TagDisplayItem.PropertyRow("Hole Diameter", "${it}mm"))
         }
 
@@ -299,17 +299,17 @@ object TagDisplayBuilder {
         }
 
         // Country of Origin
-        main.countryOfOrigin?.let {
+        main.country_of_origin?.let {
             props.add(TagDisplayItem.PropertyRow("Country", it))
         }
 
         // Manufactured Date
-        main.manufacturedDate?.let {
+        main.manufactured_date?.let {
             props.add(TagDisplayItem.PropertyRow("Manufactured", it.toString()))
         }
 
         // Expiration Date
-        main.expirationDate?.let {
+        main.expiration_date?.let {
             props.add(TagDisplayItem.PropertyRow("Expires", it.toString()))
         }
 

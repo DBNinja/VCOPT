@@ -147,10 +147,10 @@ class FieldCoverageTest {
 
     @Test
     fun `filamentDiameter uses correct key 30`() {
-        val prop = MainRegion::class.memberProperties.find { it.name == "filamentDiameter" }
-        assertNotNull("filamentDiameter field should exist", prop)
+        val prop = MainRegion::class.memberProperties.find { it.name == "filament_diameter" }
+        assertNotNull("filament_diameter field should exist", prop)
         assertEquals(
-            "filamentDiameter should use key 30 (not deprecated key 12)",
+            "filament_diameter should use key 30 (not deprecated key 12)",
             "30",
             prop?.findAnnotation<SerialName>()?.value
         )
@@ -160,21 +160,21 @@ class FieldCoverageTest {
     fun `weight fields are Float type per spec`() {
         // Spec says "number" type = Float, not Int
         val main = MainRegion()
-        val nominalWeight = main::nominalNettoFullWeight
-        val actualWeight = main::actualNettoFullWeight
-        val emptyWeight = main::emptyContainerWeight
+        val nominalWeight = main::nominal_netto_full_weight
+        val actualWeight = main::actual_netto_full_weight
+        val emptyWeight = main::empty_container_weight
 
         // Check the property returns Float?
         assertTrue(
-            "nominalNettoFullWeight should be Float type",
+            "nominal_netto_full_weight should be Float type",
             nominalWeight.returnType.toString().contains("Float")
         )
         assertTrue(
-            "actualNettoFullWeight should be Float type",
+            "actual_netto_full_weight should be Float type",
             actualWeight.returnType.toString().contains("Float")
         )
         assertTrue(
-            "emptyContainerWeight should be Float type",
+            "empty_container_weight should be Float type",
             emptyWeight.returnType.toString().contains("Float")
         )
     }
@@ -182,31 +182,31 @@ class FieldCoverageTest {
     @Test
     fun `auxRegion consumedWeight is Float type per spec`() {
         val aux = AuxRegion()
-        val consumedWeight = aux::consumedWeight
+        val consumedWeight = aux::consumed_weight
         assertTrue(
-            "consumedWeight should be Float type (spec says 'number')",
+            "consumed_weight should be Float type (spec says 'number')",
             consumedWeight.returnType.toString().contains("Float")
         )
     }
 
     @Test
     fun `brandName field exists with correct key`() {
-        val prop = MainRegion::class.memberProperties.find { it.name == "brandName" }
-        assertNotNull("brandName field should exist (not 'brand')", prop)
+        val prop = MainRegion::class.memberProperties.find { it.name == "brand_name" }
+        assertNotNull("brand_name field should exist (not 'brand')", prop)
         assertEquals("11", prop?.findAnnotation<SerialName>()?.value)
     }
 
     @Test
     fun `no field named brand exists`() {
-        // Ensure old 'brand' field has been renamed to 'brandName'
+        // Ensure old 'brand' field has been renamed to 'brand_name'
         val prop = MainRegion::class.memberProperties.find { it.name == "brand" }
-        assertNull("Field should be named 'brandName', not 'brand'", prop)
+        assertNull("Field should be named 'brand_name', not 'brand'", prop)
     }
 
     @Test
     fun `chamberTemperature uses correct key 41`() {
-        val prop = MainRegion::class.memberProperties.find { it.name == "chamberTemperature" }
-        assertNotNull("chamberTemperature field should exist", prop)
+        val prop = MainRegion::class.memberProperties.find { it.name == "chamber_temperature" }
+        assertNotNull("chamber_temperature field should exist", prop)
         assertEquals("41", prop?.findAnnotation<SerialName>()?.value)
     }
 
@@ -214,8 +214,8 @@ class FieldCoverageTest {
     fun `all SLA fields exist`() {
         val props = MainRegion::class.memberProperties.map { it.name }
         val slaFields = listOf(
-            "viscosity18c", "viscosity25c", "viscosity40c", "viscosity60c",
-            "containerVolumetricCapacity", "cureWavelength"
+            "viscosity_18c", "viscosity_25c", "viscosity_40c", "viscosity_60c",
+            "container_volumetric_capacity", "cure_wavelength"
         )
         slaFields.forEach { field ->
             assertTrue("SLA field '$field' should exist", field in props)
@@ -226,8 +226,8 @@ class FieldCoverageTest {
     fun `all container dimension fields exist`() {
         val props = MainRegion::class.memberProperties.map { it.name }
         val containerFields = listOf(
-            "containerWidth", "containerOuterDiameter",
-            "containerInnerDiameter", "containerHoleDiameter"
+            "container_width", "container_outer_diameter",
+            "container_inner_diameter", "container_hole_diameter"
         )
         containerFields.forEach { field ->
             assertTrue("Container field '$field' should exist", field in props)
@@ -238,7 +238,7 @@ class FieldCoverageTest {
     fun `all UUID fields exist`() {
         val props = MainRegion::class.memberProperties.map { it.name }
         val uuidFields = listOf(
-            "instanceUuid", "packageUuid", "materialUuid", "brandUuid"
+            "instance_uuid", "package_uuid", "material_uuid", "brand_uuid"
         )
         uuidFields.forEach { field ->
             assertTrue("UUID field '$field' should exist", field in props)
@@ -249,7 +249,7 @@ class FieldCoverageTest {
     fun `all brand-specific ID fields exist`() {
         val props = MainRegion::class.memberProperties.map { it.name }
         val brandIdFields = listOf(
-            "brandSpecificInstanceId", "brandSpecificPackageId", "brandSpecificMaterialId"
+            "brand_specific_instance_id", "brand_specific_package_id", "brand_specific_material_id"
         )
         brandIdFields.forEach { field ->
             assertTrue("Brand ID field '$field' should exist", field in props)
@@ -259,47 +259,47 @@ class FieldCoverageTest {
     @Test
     fun `filament length fields exist`() {
         val props = MainRegion::class.memberProperties.map { it.name }
-        assertTrue("nominalFullLength should exist", "nominalFullLength" in props)
-        assertTrue("actualFullLength should exist", "actualFullLength" in props)
+        assertTrue("nominal_full_length should exist", "nominal_full_length" in props)
+        assertTrue("actual_full_length should exist", "actual_full_length" in props)
     }
 
     @Test
     fun `hardness fields exist`() {
         val props = MainRegion::class.memberProperties.map { it.name }
-        assertTrue("shoreHardnessA should exist", "shoreHardnessA" in props)
-        assertTrue("shoreHardnessD should exist", "shoreHardnessD" in props)
+        assertTrue("shore_hardness_a should exist", "shore_hardness_a" in props)
+        assertTrue("shore_hardness_d should exist", "shore_hardness_d" in props)
     }
 
     @Test
     fun `serialization round trip preserves all field values`() {
         val original = MainRegion(
-            instanceUuid = "00112233445566778899AABBCCDDEEFF",
-            materialClass = "FFF",
-            materialType = "PLA",
-            brandName = "TestBrand",
-            materialName = "Test PLA",
-            filamentDiameter = 1.75f,
+            instance_uuid = "00112233445566778899AABBCCDDEEFF",
+            material_class = "FFF",
+            material_type = "PLA",
+            brand_name = "TestBrand",
+            material_name = "Test PLA",
+            filament_diameter = 1.75f,
             density = 1.24f,
-            nominalNettoFullWeight = 1000f,
-            actualNettoFullWeight = 1005f,
-            emptyContainerWeight = 200f,
-            minPrintTemp = 200,
-            maxPrintTemp = 230,
-            minBedTemp = 60,
-            maxBedTemp = 70,
-            shoreHardnessA = null,
-            shoreHardnessD = null,
-            containerWidth = 53,
-            containerOuterDiameter = 200,
-            materialTags = listOf("food_safe")
+            nominal_netto_full_weight = 1000f,
+            actual_netto_full_weight = 1005f,
+            empty_container_weight = 200f,
+            min_print_temperature = 200,
+            max_print_temperature = 230,
+            min_bed_temperature = 60,
+            max_bed_temperature = 70,
+            shore_hardness_a = null,
+            shore_hardness_d = null,
+            container_width = 53,
+            container_outer_diameter = 200,
+            tags = listOf("food_safe")
         )
 
         // Basic assertions that values are set
-        assertEquals("FFF", original.materialClass)
-        assertEquals("PLA", original.materialType)
-        assertEquals("TestBrand", original.brandName)
-        assertEquals(1.75f, original.filamentDiameter!!, 0.001f)
-        assertEquals(1000f, original.nominalNettoFullWeight!!, 0.001f)
-        assertEquals(53, original.containerWidth)
+        assertEquals("FFF", original.material_class)
+        assertEquals("PLA", original.material_type)
+        assertEquals("TestBrand", original.brand_name)
+        assertEquals(1.75f, original.filament_diameter!!, 0.001f)
+        assertEquals(1000f, original.nominal_netto_full_weight!!, 0.001f)
+        assertEquals(53, original.container_width)
     }
 }
