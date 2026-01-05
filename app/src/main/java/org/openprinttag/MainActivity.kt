@@ -157,7 +157,7 @@ class MainActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     progressBar.visibility = View.GONE
                     statusText.text = getString(R.string.error_nfc_operation_failed, e.message ?: "Unknown error")
-                    Toast.makeText(this@MainActivity, R.string.toast_write_failed, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity, R.string.toast_read_failed, Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -335,6 +335,9 @@ class MainActivity : AppCompatActivity() {
             updateModeIndicator()
             Toast.makeText(this, R.string.toast_ready_to_write, Toast.LENGTH_SHORT).show()
         }
+
+        // Initialize mode indicator to match isWriteMode state
+        updateModeIndicator()
     }
 
     private fun updateModeIndicator() {

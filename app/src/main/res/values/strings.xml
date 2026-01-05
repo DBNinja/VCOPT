@@ -24,6 +24,7 @@
     <string name="toast_data_ready_to_write">Data ready to write!</string>
     <string name="toast_write_complete">Write Complete!</string>
     <string name="toast_write_failed">Write Failed. Try again.</string>
+    <string name="toast_read_failed">Read Failed. Try again.</string>
     <string name="toast_file_loaded">File loaded to memory!</string>
     <string name="toast_ready_to_read">Ready to Read Tag</string>
     <string name="toast_ready_to_write">Ready to Write to Tag</string>
