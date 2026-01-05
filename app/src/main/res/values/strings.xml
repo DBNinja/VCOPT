@@ -3,6 +3,9 @@
     <!-- App name -->
     <string name="app_name">OpenPrintTag Writer</string>
 
+    <!-- Activity titles -->
+    <string name="title_generator">Tag Generator</string>
+
     <!-- MainActivity buttons -->
     <string name="btn_open_generator">Open generator</string>
     <string name="btn_load_bin">Load .bin file (generator output)</string>
@@ -18,7 +21,8 @@
     <string name="status_read_failed">Read Failed. Keep tag closer.</string>
 
     <!-- MainActivity tag info -->
-    <string name="tag_info_none">Tag info: none</string>
+    <string name="tag_info_none">No tag data</string>
+    <string name="hint_tap_tag_to_read">Tap an NFC tag to read its contents</string>
 
     <!-- MainActivity toast messages -->
     <string name="toast_data_ready_to_write">Data ready to write!</string>
@@ -33,25 +37,98 @@
     <string name="toast_saved_from_memory">Saved from memory!</string>
     <string name="toast_tag_ready_to_read">Tag Ready to Read</string>
 
-    <!-- GeneratorActivity hints -->
+    <!-- GeneratorActivity section headers -->
+    <string name="section_identity">IDENTITY</string>
+    <string name="section_material">MATERIAL</string>
+    <string name="section_appearance">APPEARANCE</string>
+    <string name="section_weights">WEIGHTS</string>
+    <string name="section_physical">PHYSICAL PROPERTIES</string>
+    <string name="section_temperatures">TEMPERATURES</string>
+    <string name="section_container_dims">CONTAINER DIMENSIONS</string>
+    <string name="section_sla">SLA PROPERTIES</string>
+    <string name="section_dates">DATES</string>
+    <string name="section_tags_certs">TAGS &amp; CERTIFICATIONS</string>
+    <string name="section_advanced">ADVANCED</string>
+
+    <!-- GeneratorActivity labels -->
+    <string name="label_secondary_colors">Secondary Colors</string>
+    <string name="label_print_temp">Print Temperature</string>
+    <string name="label_bed_temp">Bed Temperature</string>
+    <string name="label_chamber_temp">Chamber Temperature</string>
+    <string name="label_viscosity">Viscosity (cP)</string>
+    <string name="label_brand_specific_ids">Brand-Specific IDs</string>
+
+    <!-- GeneratorActivity hints - Identity -->
     <string name="hint_brand_name">Brand name</string>
     <string name="hint_material_name">Material name</string>
-    <string name="hint_primary_color">Primary color</string>
     <string name="hint_gtin">GTIN</string>
-    <string name="hint_min_print_temp">Min print temp (°C)</string>
-    <string name="hint_max_print_temp">Max print temp (°C)</string>
+    <string name="hint_country_of_origin">Country (ISO 2-letter)</string>
+
+    <!-- GeneratorActivity hints - Material -->
     <string name="hint_material_type">Material Type</string>
     <string name="hint_material_class">Material Class</string>
+    <string name="hint_material_abbrev">Abbreviation</string>
+
+    <!-- GeneratorActivity hints - Appearance -->
+    <string name="hint_primary_color">Primary color (hex)</string>
+
+    <!-- GeneratorActivity hints - Weights -->
+    <string name="hint_nominal_weight">Nominal (g)</string>
+    <string name="hint_actual_weight">Actual (g)</string>
+    <string name="hint_empty_container_weight">Empty container weight (g)</string>
+
+    <!-- GeneratorActivity hints - Physical -->
+    <string name="hint_filament_diameter">Diameter (mm)</string>
+    <string name="hint_density">Density (g/cm³)</string>
+    <string name="hint_min_nozzle_diameter">Min nozzle (mm)</string>
+    <string name="hint_shore_hardness_a">Shore A</string>
+    <string name="hint_shore_hardness_d">Shore D</string>
+    <string name="hint_nominal_length">Nominal length (m)</string>
+    <string name="hint_actual_length">Actual length (m)</string>
+
+    <!-- GeneratorActivity hints - Temperatures -->
+    <string name="hint_min">Min °C</string>
+    <string name="hint_max">Max °C</string>
+    <string name="hint_min_print_temp">Min print temp (°C)</string>
+    <string name="hint_max_print_temp">Max print temp (°C)</string>
+    <string name="hint_preheat_temp">Preheat °C</string>
+    <string name="hint_chamber_temp">Ideal chamber °C</string>
+
+    <!-- GeneratorActivity hints - Container -->
+    <string name="hint_container_width">Width (mm)</string>
+    <string name="hint_outer_diameter">Outer ⌀ (mm)</string>
+    <string name="hint_inner_diameter">Inner ⌀ (mm)</string>
+    <string name="hint_hole_diameter">Hole ⌀ (mm)</string>
+
+    <!-- GeneratorActivity hints - SLA -->
+    <string name="hint_cure_wavelength">Cure λ (nm)</string>
+    <string name="hint_container_volume">Volume (ml)</string>
+
+    <!-- GeneratorActivity hints - Dates -->
+    <string name="hint_manufactured_date">Manufactured</string>
+    <string name="hint_expiration_date">Expiration</string>
+
+    <!-- GeneratorActivity hints - Advanced -->
+    <string name="hint_instance_uuid">Instance UUID</string>
+    <string name="hint_package_uuid">Package UUID</string>
+    <string name="hint_material_uuid">Material UUID</string>
+    <string name="hint_brand_uuid">Brand UUID</string>
+    <string name="hint_brand_instance_id">Brand Instance ID</string>
+    <string name="hint_brand_package_id">Brand Package ID</string>
+    <string name="hint_brand_material_id">Brand Material ID</string>
+    <string name="hint_write_protection">Write Protection</string>
 
     <!-- GeneratorActivity buttons -->
     <string name="btn_generate_bin">Generate .bin</string>
     <string name="btn_set_tags">Set Tags</string>
+    <string name="btn_set_certifications">Set Certifications</string>
 
     <!-- GeneratorActivity messages -->
     <string name="error_unknown_material">Unknown Material</string>
     <string name="toast_consider_also">Consider also: %1$s</string>
     <string name="toast_failed_load_tags">Failed to load tags from assets</string>
     <string name="dialog_title_material_tags">Material Tags</string>
+    <string name="dialog_title_certifications">Certifications</string>
     <string name="dialog_btn_done">Done</string>
 
     <!-- Color picker -->

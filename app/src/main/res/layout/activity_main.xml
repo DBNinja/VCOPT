@@ -1,110 +1,177 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-  xmlns:android="http://schemas.android.com/apk/res/android"
-  xmlns:app="http://schemas.android.com/apk/res-auto"
-  android:layout_width="match_parent"
-  android:layout_height="match_parent"
-  android:padding="16dp">
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface">
 
-  <!-- Mode indicator banner -->
-  <TextView
-      android:id="@+id/tvModeIndicator"
-      android:layout_width="0dp"
-      android:layout_height="wrap_content"
-      android:text="@string/mode_read"
-      android:textAlignment="center"
-      android:textSize="16sp"
-      android:textStyle="bold"
-      android:padding="8dp"
-      android:background="@color/mode_read_background"
-      android:textColor="@android:color/white"
-      app:layout_constraintTop_toTopOf="parent"
-      app:layout_constraintLeft_toLeftOf="parent"
-      app:layout_constraintRight_toRightOf="parent"/>
+    <!-- App Bar -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurface"
+        app:elevation="0dp">
 
-  <!-- Loading indicator -->
-  <ProgressBar
-      android:id="@+id/progressBar"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:visibility="gone"
-      app:layout_constraintTop_toBottomOf="@id/tvModeIndicator"
-      app:layout_constraintLeft_toLeftOf="parent"
-      app:layout_constraintRight_toRightOf="parent"
-      android:layout_marginTop="8dp"/>
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:title="@string/app_name"
+            app:titleTextAppearance="@style/TextAppearance.OpenPrintTag.TitleLarge" />
 
-  <ScrollView
-      android:layout_width="0dp"
-      android:layout_height="0dp"
-      app:layout_constraintTop_toBottomOf="@id/progressBar"
-      app:layout_constraintBottom_toTopOf="@+id/buttons"
-      app:layout_constraintLeft_toLeftOf="parent"
-      app:layout_constraintRight_toRightOf="parent"
-      android:layout_marginTop="8dp">
+    </com.google.android.material.appbar.AppBarLayout>
 
-      <LinearLayout
-          android:orientation="vertical"
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content">
+    <!-- Main Content -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-          <Button
-              android:id="@+id/btnLaunchGenerator"
-              android:layout_width="match_parent"
-              android:layout_height="wrap_content"
-              android:text="@string/btn_open_generator" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="@dimen/bottom_bar_height">
 
-          <Button
-              android:id="@+id/btnLoadBin"
-              android:layout_width="match_parent"
-              android:layout_height="wrap_content"
-              android:text="@string/btn_load_bin"/>
+            <!-- Status Section -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="@dimen/spacing_md"
+                android:paddingTop="@dimen/spacing_md">
 
-          <Button
-              android:id="@+id/btnSaveBin"
-              android:layout_width="match_parent"
-              android:layout_height="wrap_content"
-              android:text="@string/btn_save_bin"/>
+                <!-- Mode Chip -->
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipMode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="READ MODE"
+                    android:textColor="@color/mode_read_text"
+                    app:chipBackgroundColor="@color/status_read"
+                    app:chipCornerRadius="@dimen/mode_chip_corner_radius"
+                    app:chipMinHeight="@dimen/mode_chip_height"
+                    app:chipIconEnabled="false"
+                    app:closeIconVisible="false"
+                    app:ensureMinTouchTargetSize="false" />
 
-          <TextView
-              android:id="@+id/tvStatus"
-              android:layout_width="match_parent"
-              android:layout_height="wrap_content"
-              android:text="@string/status_idle"
-              android:paddingTop="12dp"/>
+                <!-- Status Text -->
+                <TextView
+                    android:id="@+id/tvStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_xs"
+                    style="@style/TextAppearance.OpenPrintTag.BodyMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:text="@string/status_idle" />
 
-          <TextView
-              android:id="@+id/tvTagInfo"
-              android:layout_width="match_parent"
-              android:layout_height="wrap_content"
-              android:text="@string/tag_info_none"
-              android:paddingTop="12dp"/>
+            </LinearLayout>
 
-      </LinearLayout>
-  </ScrollView>
+            <!-- Loading Indicator -->
+            <ProgressBar
+                android:id="@+id/progressBar"
+                style="?android:attr/progressBarStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:visibility="gone" />
 
-  <LinearLayout
-      android:id="@+id/buttons"
-      android:layout_width="0dp"
-      android:layout_height="wrap_content"
-      android:orientation="horizontal"
-      app:layout_constraintBottom_toBottomOf="parent"
-      app:layout_constraintLeft_toLeftOf="parent"
-      app:layout_constraintRight_toRightOf="parent">
+            <!-- Tag Data Display (RecyclerView) -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvTagData"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:clipToPadding="false" />
 
-      <Button
-          android:id="@+id/btnReadTag"
-          android:layout_width="0dp"
-          android:layout_weight="1"
-          android:layout_height="wrap_content"
-          android:text="@string/btn_read_tag" />
+            <!-- Actions Section -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="@dimen/spacing_md"
+                android:paddingTop="@dimen/spacing_lg">
 
-      <Button
-          android:id="@+id/btnWriteTag"
-          android:layout_width="0dp"
-          android:layout_weight="1"
-          android:layout_height="wrap_content"
-          android:text="@string/btn_write_tag" />
+                <!-- Section Label -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/spacing_sm"
+                    style="@style/TextAppearance.OpenPrintTag.SectionHeader"
+                    android:text="ACTIONS" />
 
-  </LinearLayout>
+                <!-- Action Buttons -->
+                <Button
+                    android:id="@+id/btnLaunchGenerator"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/button_height"
+                    android:layout_marginBottom="@dimen/spacing_sm"
+                    android:text="@string/btn_open_generator" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+                <Button
+                    android:id="@+id/btnLoadBin"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/button_height"
+                    android:layout_marginBottom="@dimen/spacing_sm"
+                    android:text="@string/btn_load_bin" />
+
+                <Button
+                    android:id="@+id/btnSaveBin"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/button_height"
+                    android:text="@string/btn_save_bin" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- Bottom Bar with Mode Toggle -->
+    <com.google.android.material.bottomappbar.BottomAppBar
+        android:id="@+id/bottomAppBar"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/bottom_bar_height"
+        android:layout_gravity="bottom"
+        app:fabCradleMargin="0dp"
+        app:fabCradleVerticalOffset="0dp"
+        app:hideOnScroll="false"
+        app:elevation="8dp"
+        android:backgroundTint="?attr/colorSurface">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:paddingHorizontal="@dimen/spacing_md">
+
+            <Button
+                android:id="@+id/btnReadTag"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/button_height"
+                android:layout_weight="1"
+                android:layout_marginEnd="@dimen/spacing_sm"
+                android:text="@string/btn_read_tag" />
+
+            <Button
+                android:id="@+id/btnWriteTag"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/button_height"
+                android:layout_weight="1"
+                android:text="@string/btn_write_tag" />
+
+        </LinearLayout>
+
+    </com.google.android.material.bottomappbar.BottomAppBar>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

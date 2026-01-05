@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="@dimen/spacing_md"
+    android:paddingVertical="@dimen/spacing_sm">
+
+    <!-- Progress Bar -->
+    <ProgressBar
+        android:id="@+id/progressUsage"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/progress_bar_height"
+        android:max="100"
+        android:progress="67"
+        android:progressDrawable="@drawable/progress_usage"
+        android:background="@drawable/progress_usage_track" />
+
+    <!-- Progress Text -->
+    <TextView
+        android:id="@+id/tvProgressText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_xs"
+        style="@style/TextAppearance.OpenPrintTag.BodyMedium"
+        android:textColor="?attr/colorOnSurface"
+        android:text="67% remaining" />
+
+    <!-- Detail Text -->
+    <TextView
+        android:id="@+id/tvUsageDetail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        style="@style/TextAppearance.OpenPrintTag.BodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:text="670g remaining • 330g used" />
+
+</LinearLayout>
