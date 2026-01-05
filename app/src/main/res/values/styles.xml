@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- App theme using Material Components (works with AppCompatActivity) -->
+    <style name="Theme.OpenPrintTag" parent="Theme.Material3.DayNight.NoActionBar">
+    <!-- Customize your colors, shapes, etc. as needed -->
+    
+    <item name="colorPrimary">@color/purple_500</item>
+    <item name="colorPrimaryVariant">@color/purple_700</item> 
+    <item name="colorOnPrimary">@color/white</item>
+    <item name="android:windowBackground">?attr/colorSurface</item> 
+    </style>
+</resources>

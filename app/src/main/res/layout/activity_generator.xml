@@ -1,16 +1,77 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"  xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent" android:layout_height="match_parent" >
     <LinearLayout android:orientation="vertical" android:padding="16dp"
         android:layout_width="match_parent" android:layout_height="wrap_content">
 
-        <EditText android:id="@+id/etBrand" android:hint="Brand name" android:layout_width="match_parent" android:layout_height="wrap_content"/>
-        <EditText android:id="@+id/etMaterialName" android:hint="Material name" android:layout_width="match_parent" android:layout_height="wrap_content"/>
-        <EditText android:id="@+id/etColor" android:hint="Primary color" android:layout_width="match_parent" android:layout_height="wrap_content"/>
-        <EditText android:id="@+id/etGtin" android:hint="GTIN" android:layout_width="match_parent" android:layout_height="wrap_content"/>
-        <EditText android:id="@+id/etMinTemp" android:hint="Min print temp (°C)" android:inputType="number" android:layout_width="match_parent" android:layout_height="wrap_content"/>
-        <EditText android:id="@+id/etMaxTemp" android:hint="Max print temp (°C)" android:inputType="number" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <EditText android:id="@+id/getBrand" android:hint="Brand name" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <EditText android:id="@+id/getMaterialName" android:hint="Material name" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="45dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/colorButton"
+                android:layout_width="77dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="" />
+
+            <EditText
+                android:id="@+id/getColor"
+                android:layout_width="318dp"
+                android:layout_height="wrap_content"
+                android:hint="Primary color" />
+        </LinearLayout>
+
+        <EditText android:id="@+id/getGtin" android:hint="GTIN" android:inputType="number" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <EditText android:id="@+id/getMinTemp" android:hint="Min print temp (°C)" android:inputType="number" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <EditText android:id="@+id/getMaxTemp" android:hint="Max print temp (°C)" android:inputType="number" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layoutMaterialType"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:hint="Material Type">
+
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/autoCompleteMaterialType"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:paddingTop="16dp"
+                android:paddingBottom="16dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layoutMaterialClass"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:hint="Material Class">
+
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/autoCompleteMaterialClass"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none" /> </com.google.android.material.textfield.TextInputLayout>
 
         <Button android:id="@+id/btnGenerateBin" android:text="Generate .bin" android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+
+        <Button
+            android:id="@+id/setTagsButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Set Tags" />
     </LinearLayout>
+
 </ScrollView>

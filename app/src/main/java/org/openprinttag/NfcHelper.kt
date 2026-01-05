@@ -39,7 +39,7 @@ class NfcHelper(private val tag: Tag) {
         nfcA.connect()
         try {
             val startPage = 4
-            val endPage = 0x3F
+            val endPage = 129
             val cmd = byteArrayOf(0x3A.toByte(), startPage.toByte(), endPage.toByte())
             val resp = nfcA.transceive(cmd)
             return resp
@@ -82,7 +82,7 @@ class NfcHelper(private val tag: Tag) {
         try {
             val uid = tag.id.reversedArray()
             val blocks = mutableListOf<Byte>()
-            for (blockNum in 0 until 64) {
+            for (blockNum in 0 until 129) {
                 try {
                     val flags: Byte = 0x02
                     val cmd = ByteArray(2 + uid.size + 1)

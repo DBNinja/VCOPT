@@ -1,98 +1,436 @@
+@file:OptIn(ExperimentalStdlibApi::class)
+
 package org.openprinttag.model
 
+import android.util.Log
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import org.openprinttag.util.ByteUtils
 import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
-import java.time.format.DateTimeFormatter
-import kotlin.math.min
+import java.time.ZoneOffset
+import kotlinx.serialization.decodeFromByteArray
+import kotlinx.serialization.cbor.Cbor
+import kotlinx.serialization.ExperimentalSerializationApi
 
-object Serializer {
+class Serializer(
+    private val classMap: Map<String, Int>,
+    private val typeMap: Map<String, Int>,
+    private val tagsMap: Map<String, Int>,
+    private val certsMap: Map<String, Int>
+) {
 
-    private val DATE_FMT = DateTimeFormatter.ISO_LOCAL_DATE
+    private val mapper = ObjectMapper(CBORFactory())
 
     fun serialize(model: OpenPrintTagModel): ByteArray {
-        val meta = encodeMeta(model)
-        val main = encodeMain(model)
-        val aux  = encodeAux(model)
+        // 1. Encode regions as CBOR maps
+        val mainRegion = encodeMain(model)
+        val auxRegion = encodeAux(model)
+        val metaRegion = ByteArray(0) // Reserved for future use
 
-        val header = ByteBuffer.allocate(8)
-        header.put("OPTG".toByteArray(StandardCharsets.US_ASCII))
-        header.put(0x01)
-        header.put(((meta.size shr 8) and 0xFF).toByte())
-        header.put((meta.size and 0xFF).toByte())
-        header.put(((main.size shr 8) and 0xFF).toByte())
-        header.put((main.size and 0xFF).toByte())
-        val headerBytes = header.array()
+        //
+        val header = ByteBuffer.allocate(42)
+        header.put(byteArrayOf(0xE1.toByte(), 0x40.toByte(), 0x27.toByte(), 0x01.toByte()))
+        //header.put("OPTG".toByteArray(StandardCharsets.US_ASCII))
+        header.put(0x03.toByte()) // NDEF
+        header.put(0xFF.toByte()) // NDEF
+        //header.putShort(metaRegion.size.toShort())
+        //header.putShort(mainRegion.size.toShort())
+        
 
-        val combined = ByteBuffer.allocate(headerBytes.size + meta.size + main.size + aux.size)
-        combined.put(headerBytes)
-        combined.put(meta)
-        combined.put(main)
-        combined.put(aux)
-        val body = combined.array()
+        // 3. Combine parts
+        val payloadLength = metaRegion.size + mainRegion.size + auxRegion.size + (header.capacity() - 8)
+        //6 bytes are used previously, 2 bytes for the short size
+        header.putShort(payloadLength.toShort())
 
-        val checksum = ByteUtils.crc32(body)
-        val out = ByteBuffer.allocate(body.size + 4)
-        out.put(body)
-        out.putInt(checksum)
-        return out.array()
+        val totalSize = metaRegion.size + mainRegion.size + auxRegion.size  + header.capacity()
+        val cborSize = metaRegion.size + mainRegion.size + auxRegion.size 
+        header.put(0xC2.toByte()) // NDEF Record Header. MB=1, ME=1, TNF=2 (MIME), SR=0 (Long Record).
+        header.put(0x1C.toByte()) // 28 byes for MIME length
+
+        header.putInt(cborSize.toInt())
+        val mimeType = "application/vnd.openprinttag"
+        val mimeBytes = mimeType.toByteArray(Charsets.US_ASCII)
+        header.put(mimeBytes)
+
+        val body = ByteBuffer.allocate(totalSize)
+            .put(header.array())
+            .put(metaRegion)
+            .put(mainRegion)
+            .put(auxRegion)
+            .array()
+
+        // 4. Append CRC32 Checksum
+        //val checksum = ByteUtils.crc32(body)
+        return ByteBuffer.allocate(body.size + 1)
+            .put(body)
+            //.putInt(checksum)
+            .put(0xFE.toByte())
+            .array()
     }
 
-    private fun encodeMeta(m: OpenPrintTagModel): ByteArray {
-        val bb = ByteBuffer.allocate(512)
-        putTLV(bb, 0x01, m.brand.toByteArray(StandardCharsets.UTF_8))
-        putTLV(bb, 0x02, m.materialName.toByteArray(StandardCharsets.UTF_8))
-        putTLV(bb, 0x03, m.primaryColor.toByteArray(StandardCharsets.UTF_8))
-        m.gtin?.let { putTLV(bb, 0x04, it.toByteArray(StandardCharsets.UTF_8)) }
-        m.manufacturedDate?.let {
-            putTLV(bb, 0x05, it.format(DATE_FMT).toByteArray(StandardCharsets.US_ASCII))
+
+    fun generateDualRecordBin(cborPayload: ByteArray, urlString: String): ByteArray {
+        // --- 1. Prepare URI Record ---
+        // Using https://www. (prefix 0x02)
+        val urlBody = urlString.removePrefix("https://www.")
+        val urlPayload = byteArrayOf(0x02.toByte()) + urlBody.toByteArray(Charsets.UTF_8)
+        
+        // URI Record Header: MB=0, ME=1, TNF=0x01 (Well-Known), SR=1 (Short)
+        // 0x51 = 01010001 (ME, SR, TNF=1)
+        val uriRecordHeader = ByteBuffer.allocate(3 + 1 + urlPayload.size).apply {
+            put(0x51.toByte())               // Header
+            put(0x01.toByte())               // Type Length ("U" is 1 byte)
+            put(urlPayload.size.toByte())    // Payload Length (SR=1)
+            put('U'.toByte())                // Type
+            put(urlPayload)                  // Payload (Prefix + URL)
+        }.array()
+
+        // --- 2. Prepare CBOR Record ---
+        val mimeBytes = "application/vnd.openprinttag".toByteArray(Charsets.US_ASCII)
+        // CBOR Record Header: MB=1, ME=0, TNF=0x02 (MIME), SR=0 (Long)
+        // 0x82 = 10000010 (MB, TNF=2)
+        val cborRecord = ByteBuffer.allocate(1 + 1 + 4 + mimeBytes.size + cborPayload.size).apply {
+            put(0x82.toByte())
+            put(mimeBytes.size.toByte())
+            putInt(cborPayload.size)
+            put(mimeBytes)
+            put(cborPayload)
+        }.array()
+
+        // --- 3. Assemble Full Message ---
+        val totalNdefSize = cborRecord.size + uriRecordHeader.size
+        
+        val finalBuffer = ByteBuffer.allocate(8 + totalNdefSize + 1).apply {
+            order(ByteOrder.BIG_ENDIAN)
+            // NFC Prefix
+            put(byteArrayOf(0xE1.toByte(), 0x40.toByte(), 0x27.toByte(), 0x01.toByte()))
+            put(0x03.toByte())          // NDEF Tag
+            put(0xFF.toByte())          // Long Length
+            putShort(totalNdefSize.toShort())
+            
+            // Records
+            put(cborRecord)
+            put(uriRecordHeader)
+            
+            // Terminator
+            put(0xFE.toByte())
         }
-        m.countryOfOrigin?.let { putTLV(bb, 0x06, it.toByteArray(StandardCharsets.US_ASCII)) }
-        val size = bb.position()
-        val out = ByteArray(size)
-        bb.rewind(); bb.get(out)
-        return out
+
+        return finalBuffer.array()
     }
 
     private fun encodeMain(m: OpenPrintTagModel): ByteArray {
-        val bb = ByteBuffer.allocate(512)
-        putTLV(bb, 0x10, m.materialClass.toByteArray(StandardCharsets.US_ASCII))
-        putTLV(bb, 0x11, m.materialType.toByteArray(StandardCharsets.US_ASCII))
-        m.density?.let { putTLV(bb, 0x12, ByteUtils.floatToBytes(it)) }
-        m.minPrintTemp?.let { putTLV(bb, 0x20, byteArrayOf(it.toByte())) }
-        m.maxPrintTemp?.let { putTLV(bb, 0x21, byteArrayOf(it.toByte())) }
-        m.preheatTemp?.let { putTLV(bb, 0x22, byteArrayOf(it.toByte())) }
-        m.minBedTemp?.let { putTLV(bb, 0x23, byteArrayOf(it.toByte())) }
-        m.maxBedTemp?.let { putTLV(bb, 0x24, byteArrayOf(it.toByte())) }
-        if (m.materialTags.isNotEmpty()) {
-            val joined = m.materialTags.joinToString(",")
-            putTLV(bb, 0x30, joined.toByteArray(StandardCharsets.UTF_8))
+        val data = mutableMapOf<Int, Any>()
+
+        // Use .let { ... } to only add to the map if the value is not null
+        m.main.gtin?.toLongOrNull()?.let { data[4] = it }
+        
+        classMap[m.main.materialClass]?.let { data[8] = it }
+        
+        // Safety check: only encode type if it exists in your YAML map
+        // Only map if the string isn't the prompt
+        val typeStr = m.main.materialType
+        if (typeStr != null && typeStr != "Select Material Type...") {
+            typeMap[typeStr]?.let { data[9] = it }
         }
-        if (m.certifications.isNotEmpty()) {
-            val joined = m.certifications.joinToString(",")
-            putTLV(bb, 0x31, joined.toByteArray(StandardCharsets.UTF_8))
+    
+        m.main.materialName?.takeIf { it.isNotBlank() }?.let { data[10] = it }
+        m.main.brand?.takeIf { it.isNotBlank() }?.let { data[11] = it }
+        m.main.density?.let { data[29] = it }
+
+        // Use your new helper for the timestamp
+        m.main.manufacturedDate?.let { 
+            // This code only runs if manufacturedDate is NOT null
+            data[14] = getDateEpoch(m.main.manufacturedDate)!!
         }
-        val size = bb.position()
-        val out = ByteArray(size)
-        bb.rewind(); bb.get(out)
-        return out
+
+        // Multi-select tags
+        if (m.main.materialTags.isNotEmpty()) {
+            val tagIds = m.main.materialTags.mapNotNull { tagsMap[it] }
+            if (tagIds.isNotEmpty()) data[28] = tagIds
+        }
+
+        // Temperatures
+        m.main.minPrintTemp?.let { data[34] = it }
+        m.main.maxPrintTemp?.let { data[35] = it }
+
+        return mapper.writeValueAsBytes(data)
     }
 
     private fun encodeAux(m: OpenPrintTagModel): ByteArray {
-        val bb = ByteBuffer.allocate(256)
-        if (m.includeUrlRecord && !m.tagUrl.isNullOrBlank()) {
-            putTLV(bb, 0x40, m.tagUrl!!.toByteArray(StandardCharsets.UTF_8))
-        }
-        val size = bb.position()
-        val out = ByteArray(size)
-        bb.rewind(); bb.get(out)
-        return out
+        val data = mutableMapOf<Int, Any>()
+        // If your aux_fields.yaml had defined keys for URLs, they would go here.
+        // For now, we follow the structure of providing a CBOR map.
+        return if (data.isEmpty()) ByteArray(0) else mapper.writeValueAsBytes(data)
     }
 
-    private fun putTLV(bb: java.nio.ByteBuffer, tag: Int, value: ByteArray) {
-        val len = min(value.size, 255)
-        bb.put(tag.toByte())
-        bb.put(len.toByte())
-        bb.put(value, 0, len)
+    fun deserializeAllRecords(fileBytes: ByteArray) {
+        val buffer = ByteBuffer.wrap(fileBytes).order(ByteOrder.BIG_ENDIAN)
+
+        // --- 1. Skip NFC Magic Number (E1 40 27 01) ---
+        buffer.position(4)
+
+        // --- 2. Find the NDEF Message TLV (03) ---
+        while (buffer.hasRemaining()) {
+            val tag = buffer.get().toInt() and 0xFF
+            if (tag == 0x03) {
+                // Found NDEF Message. Get its length.
+                val lengthByte = buffer.get().toInt() and 0xFF
+                val ndefMessageLength = if (lengthByte == 0xFF) buffer.short.toInt() else lengthByte
+                
+                // Limit the buffer to ONLY the NDEF Message content
+                val endOfMessage = buffer.position() + ndefMessageLength
+                
+                // --- 3. Loop through Records inside the Message ---
+                while (buffer.position() < endOfMessage) {
+                    parseNextNdefRecord(buffer)
+                }
+            } else if (tag == 0xFE) {
+                break // End of tag
+            }
+        }
+    }
+
+    private fun parseNextNdefRecord(buffer: ByteBuffer) {
+        val header = buffer.get().toInt()
+        
+        // NDEF Header flags
+        val tnf = header and 0x07 // Type Name Format
+        val isShortRecord = (header and 0x10) != 0 // SR flag
+        
+        // Type Length
+        val typeLength = buffer.get().toInt() and 0xFF
+        
+        // Payload Length (1 byte if SR=1, 4 bytes if SR=0)
+        val payloadLength = if (isShortRecord) {
+            buffer.get().toInt() and 0xFF
+        } else {
+            buffer.int
+        }
+
+        // ID Length (Only present if IL flag is set in header)
+        val idLength = if ((header and 0x08) != 0) buffer.get().toInt() and 0xFF else 0
+
+        // Read Type (e.g., "application/vnd.openprinttag" or "U" or "T")
+        val typeBytes = ByteArray(typeLength)
+        buffer.get(typeBytes)
+        val typeString = String(typeBytes, Charsets.US_ASCII)
+
+        // Skip ID if present
+        if (idLength > 0) buffer.position(buffer.position() + idLength)
+
+        // Extract Payload
+        val payload = ByteArray(payloadLength)
+        buffer.get(payload)
+
+        // --- 4. Route based on Type ---
+        when {
+            typeString == "application/vnd.openprinttag" -> {
+                println("Found CBOR Record: ${payload.toHexString()}")
+                decodeCbor(payload)
+            }
+            tnf == 0x01 && typeString == "U" -> {
+                val url = decodeUriRecord(payload)
+                println("Found URL: $url")
+            }
+            else -> {
+                println("Found Unknown Record Type: $typeString")
+            }
+        }
+    }
+
+    fun decodeUriRecord(payload: ByteArray): String {
+        if (payload.isEmpty()) return ""
+
+        val prefixCode = payload[0].toInt() and 0xFF
+        val uriData = String(payload.copyOfRange(1, payload.size), Charsets.UTF_8)
+
+        val prefix = when (prefixCode) {
+            0x01 -> "http://www."
+            0x02 -> "https://www."
+            0x03 -> "http://"
+            0x04 -> "https://"
+            0x06 -> "mailto:"
+            else -> "" // 0x00 or unknown
+        }
+
+        return prefix + uriData
+    }
+
+    
+
+    fun decodeRegions(payload: ByteArray, model: OpenPrintTagModel) {
+        val factory = CBORFactory()
+        val parser = factory.createParser(payload)
+        
+        try {
+            // 1. Read the first CBOR Object
+            // This is either the Meta Region OR the Main Region
+            val firstNode = mapper.readTree(parser) ?: return
+
+            // Check if this first node is the META region
+            // Meta region typically uses keys 0-3 for offsets/sizes
+            // Main region uses keys 0-5+ for UUIDs, GTIN, etc.
+            if (isMetaRegion(firstNode)) {
+                val mainOffset = firstNode.get(0)?.asInt() ?: 0
+                val mainSize = firstNode.get(1)?.asInt() ?: 0
+                val auxOffset = firstNode.get(2)?.asInt() ?: 0
+                val auxSize = firstNode.get(3)?.asInt() ?: 0
+
+                // Meta-Guided Slice
+                if (mainSize > 0) {
+                    val mainBytes = payload.copyOfRange(mainOffset, mainOffset + mainSize)
+                    model.main = decodeMainRegion(mainBytes)
+                }
+                if (auxSize > 0) {
+                    val auxBytes = payload.copyOfRange(auxOffset, auxOffset + auxSize)
+                    model.aux = decodeAuxRegion(auxBytes)
+                }
+            } else {
+                // 2. Meta is OMITTED - First node is actually the Main Region
+                model.main = decodeMainRegion(firstNode)
+                
+                // Try to read a second object (which would be the Aux Region)
+                val secondNode = mapper.readTree(parser)
+                if (secondNode != null) {
+                    model.aux = decodeAuxRegion(secondNode)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("Serializer", "Decoding error: ${e.message}")
+        } finally {
+            parser.close()
+        }
+    }
+
+    /**
+     * Heuristic to check if a CBOR map is a Meta region vs Main region.
+     * Meta region focuses on offsets (0-3), while Main focuses on material data.
+     */
+    private fun isMetaRegion(node: JsonNode): Boolean {
+        // In Meta, key 0 is main_region_offset. 
+        // In Main, key 0 is instance_uuid (usually a 16-byte binary).
+        // If key 0 is a small integer, it's likely Meta.
+        val key0 = node.get(0)
+        return key0 != null && key0.isInt && key0.asInt() < 1000 
+    }
+
+    /*
+    fun decodeMainRegion(payload: ByteArray): OpenPrintTagModel? {
+        return try {
+            // 1. Define a non-strict CBOR instance to ignore keys not in the model
+            //val cbor = com.android.identity.cbor.Cbor.decode(payload)
+            @OptIn(ExperimentalSerializationApi::class)
+            val cbor = Cbor {
+                ignoreUnknownKeys = true
+                encodeDefaults = false
+            }
+
+            // 2. Decode the raw bytes into the model using the @SerialName mapping
+            var model: OpenPrintTagModel.main = cbor.decodeFromByteArray<OpenPrintTagModel>(payload)
+
+            // 3. Post-process Enum values (Converting IDs back to human-readable strings)
+            // Note: This assumes your model stores the string representation 
+            // while the CBOR uses the Integer 'key' from your YAMLs.
+            
+            model.apply {
+                // Reverse lookup for Material Type
+                // typeMap is Map<String, Int>, we need the key for the value
+                main.materialType = typeMap.entries.find { it.value.toString() == main.materialType }?.key ?: main.materialType
+                
+                // Reverse lookup for Material Class
+                main.materialClass = classMap.entries.find { it.value.toString() == main.materialClass }?.key ?: main.materialClass
+                
+                // Handle multi-select tags
+                main.materialTags = tagsMap.map { tagId ->
+                    //(tagsMap.entries.find { it.value.toString() == tagId }?.key as? String) ?: tagId.toString()
+                    val foundKey = tagsMap.entries.find { it.value.toString() == tagId.toString() }?.key
+                    foundKey?.toString() ?: tagId.toString()
+                    //tagsMap.entries.find { it.value.toString() == tagId }?.key ?: tagId
+                }
+            }
+            
+            
+        } catch (e: Exception) {
+            Log.e("Serializer", "Failed to decode CBOR: ${e.message}")
+            null
+        }
+    }
+    */
+
+    @OptIn(ExperimentalSerializationApi::class)
+    fun decodeMainRegion(payload: ByteArray): OpenPrintTagModel.MainRegion? {
+        return try {
+            // 1. Setup CBOR decoder
+            val cbor = Cbor {
+                ignoreUnknownKeys = true
+                encodeDefaults = false
+            }
+
+            // 2. Decode bytes into the MainRegion data class
+            // Note: If your model properties are String but the tag has Int, 
+            // this might need a custom serializer or use Jackson/Manual Map.
+            val mainRegion = cbor.decodeFromByteArray<OpenPrintTagModel.MainRegion>(payload)
+
+            // 3. Post-process Enum values (Reverse Lookup)
+            mainRegion.apply {
+                // Convert Material Type: "0" (as string from CBOR) -> "PLA"
+                materialType = typeMap.entries.find { 
+                    it.value.toString() == materialType 
+                }?.key ?: materialType
+
+                // Convert Material Class: "0" -> "FFF"
+                materialClass = classMap.entries.find { 
+                    it.value.toString() == materialClass 
+                }?.key ?: materialClass
+
+                // 4. Corrected Tags Mapping
+                // We map the LIST of tags from the model, not the dictionary.
+                materialTags = materialTags.map { tagId ->
+                    // Look up the tagId (e.g., "52") in your YAML-loaded map
+                    tagsMap.entries.find { 
+                        it.value.toString() == tagId 
+                    }?.key ?: tagId
+                }
+                
+                // Do the same for certifications if applicable
+                certifications = certifications.map { certId ->
+                    certsMap.entries.find { 
+                        it.value.toString() == certId 
+                    }?.key ?: certId
+                }
+            }
+
+            mainRegion
+        } catch (e: Exception) {
+            Log.e("Serializer", "Failed to decode Main Region: ${e.message}")
+            null
+        }
+    }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    fun decodeAuxRegion(payload: ByteArray): OpenPrintTagModel.AuxRegion? {
+        return try {
+            // 1. Setup the same CBOR configuration used for the Main region
+            val cbor = Cbor {
+                ignoreUnknownKeys = true
+                encodeDefaults = false
+            }
+
+            // 2. Decode the sliced bytes directly into the AuxRegion data class
+            // This will map Key "0" to consumedWeight and Key "1" to workgroup
+            val auxRegion = cbor.decodeFromByteArray<OpenPrintTagModel.AuxRegion>(payload)
+
+            // 3. Post-processing (if needed)
+            // If you add fields in the future that use enums (like a 'status' field),
+            // you would perform the reverse-lookup here just like in decodeMainRegion.
+            
+            auxRegion
+        } catch (e: Exception) {
+            Log.e("Serializer", "Failed to decode Aux Region: ${e.message}")
+            null
+        }
     }
 }
