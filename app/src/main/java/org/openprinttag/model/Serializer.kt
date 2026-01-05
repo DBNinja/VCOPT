@@ -293,12 +293,27 @@ class Serializer(
      */
     private fun findCborPayloadStart(data: ByteArray): Int {
         if (data.size < 8) return -1
-        // Look for NDEF message start (0x03) after NFC header
+
+        // Find NDEF message start (0x03) after NFC header
         for (i in 4 until minOf(data.size, 20)) {
             if (data[i] == 0x03.toByte()) {
-                // Skip length bytes
+                // Determine NDEF message length field size
                 val lengthByte = data.getOrNull(i + 1)?.toInt()?.and(0xFF) ?: return -1
-                return if (lengthByte == 0xFF) i + 4 else i + 2
+                val recordStart = if (lengthByte == 0xFF) i + 4 else i + 2
+
+                if (recordStart >= data.size) return -1
+
+                // Parse NDEF record header
+                val recordHeader = data.getOrNull(recordStart)?.toInt()?.and(0xFF) ?: return -1
+                val isShortRecord = (recordHeader and 0x10) != 0
+
+                val typeLength = data.getOrNull(recordStart + 1)?.toInt()?.and(0xFF) ?: return -1
+
+                // Payload length: 1 byte if SR=1, 4 bytes if SR=0
+                val payloadLengthSize = if (isShortRecord) 1 else 4
+
+                // CBOR payload starts after: record header (1) + type length (1) + payload length (1 or 4) + type string
+                return recordStart + 1 + 1 + payloadLengthSize + typeLength
             }
         }
         return -1
@@ -312,8 +327,14 @@ class Serializer(
 
         try {
             // 1. Read the first CBOR Object
-            // This is either the Meta Region OR the Main Region
-            val firstNode: JsonNode = mapper.readTree(parser) ?: return
+            var firstNode: JsonNode = mapper.readTree(parser) ?: return
+
+            // Check if this first node is a VERSION MARKER (small map with only key 2)
+            // Format: {2: version_number} - skip it and read the next object
+            if (isVersionMarker(firstNode)) {
+                Log.d("Serializer", "Skipping version marker: ${firstNode}")
+                firstNode = mapper.readTree(parser) ?: return
+            }
 
             // Check if this first node is the META region
             // Meta region typically uses keys 0-3 for offsets/sizes
@@ -351,6 +372,16 @@ class Serializer(
     }
 
     /**
+     * Check if a CBOR map is a version marker (format: {2: version_number})
+     */
+    private fun isVersionMarker(node: JsonNode): Boolean {
+        if (!node.isObject) return false
+        val fields = node.fieldNames().asSequence().toList()
+        // Version marker has exactly one field with key "2"
+        return fields.size == 1 && fields[0] == "2" && node.get("2")?.isInt == true
+    }
+
+    /**
      * Heuristic to check if a CBOR map is a Meta region vs Main region.
      * Meta region focuses on offsets (0-3), while Main focuses on material data.
      */
@@ -363,11 +394,114 @@ class Serializer(
     }
 
     /**
-     * Decode MainRegion from a Jackson JsonNode (converts to bytes first)
+     * Decode MainRegion directly from a Jackson JsonNode (more lenient with types)
      */
     private fun decodeMainRegionFromNode(node: JsonNode): MainRegion {
-        val bytes = mapper.writeValueAsBytes(node)
-        return decodeMainRegion(bytes) ?: MainRegion()
+        val main = MainRegion()
+
+        // Helper to get string from int, string, or bytes
+        fun JsonNode?.asFlexibleString(): String? = when {
+            this == null || this.isNull -> null
+            this.isTextual -> this.asText()
+            this.isNumber -> this.asText()
+            this.isBinary -> this.binaryValue()?.let { bytes ->
+                bytes.joinToString("") { "%02X".format(it) }
+            }
+            else -> this.asText()
+        }
+
+        // Helper to get int
+        fun JsonNode?.asFlexibleInt(): Int? = when {
+            this == null || this.isNull -> null
+            this.isNumber -> this.asInt()
+            this.isTextual -> this.asText().toIntOrNull()
+            else -> null
+        }
+
+        // Helper to get float
+        fun JsonNode?.asFlexibleFloat(): Float? = when {
+            this == null || this.isNull -> null
+            this.isNumber -> this.floatValue()
+            this.isTextual -> this.asText().toFloatOrNull()
+            else -> null
+        }
+
+        // Map fields by their CBOR keys
+        main.gtin = node.get("4").asFlexibleString()
+        main.materialClass = node.get("8").asFlexibleString() ?: "FFF"
+        main.materialType = node.get("9").asFlexibleString()
+        main.materialName = node.get("10").asFlexibleString()
+        main.brand = node.get("11").asFlexibleString()
+        main.nominalDiameter = node.get("12").asFlexibleFloat()
+
+        // Date handling (key 14 - epoch seconds)
+        node.get("14")?.let { dateNode ->
+            if (dateNode.isNumber) {
+                val epochSeconds = dateNode.asLong()
+                main.manufacturedDate = java.time.LocalDate.ofEpochDay(epochSeconds / 86400)
+            }
+        }
+
+        main.totalWeight = node.get("16").asFlexibleInt()
+        main.ActTotalWeight = node.get("17").asFlexibleInt()
+
+        // Colors (might be bytes or strings)
+        main.primaryColor = node.get("19").asFlexibleString()
+        main.secondary_color_0 = node.get("20").asFlexibleString()
+        main.secondary_color_1 = node.get("21").asFlexibleString()
+        main.secondary_color_2 = node.get("22").asFlexibleString()
+        main.secondary_color_3 = node.get("23").asFlexibleString()
+        main.secondary_color_4 = node.get("24").asFlexibleString()
+
+        main.transmission_distance = node.get("27").asFlexibleFloat()
+
+        // Multi-select tags (key 28) - array of ints
+        node.get("28")?.let { tagsNode ->
+            if (tagsNode.isArray) {
+                main.materialTags = tagsNode.mapNotNull { it.asFlexibleString() }
+            }
+        }
+
+        main.density = node.get("29").asFlexibleFloat()
+
+        // Temperatures
+        main.minPrintTemp = node.get("34").asFlexibleInt()
+        main.maxPrintTemp = node.get("35").asFlexibleInt()
+        main.preheatTemp = node.get("36").asFlexibleInt()
+        main.minBedTemp = node.get("37").asFlexibleInt()
+        main.maxBedTemp = node.get("38").asFlexibleInt()
+        main.minChamberTemp = node.get("39").asFlexibleInt()
+        main.maxChamberTemp = node.get("40").asFlexibleInt()
+        main.idealChamberTemp = node.get("41").asFlexibleInt()
+
+        main.materialAbbrev = node.get("52").asFlexibleString()
+        main.countryOfOrigin = node.get("55").asFlexibleString()
+
+        // Certifications (key 56) - array of ints
+        node.get("56")?.let { certsNode ->
+            if (certsNode.isArray) {
+                main.certifications = certsNode.mapNotNull { it.asFlexibleString() }
+            }
+        }
+
+        // Post-process enum values (reverse lookup)
+        main.materialType = typeMap.entries.find {
+            it.value.toString() == main.materialType
+        }?.key ?: main.materialType
+
+        main.materialClass = classMap.entries.find {
+            it.value.toString() == main.materialClass
+        }?.key ?: main.materialClass
+
+        main.materialTags = main.materialTags.map { tagId ->
+            tagsMap.entries.find { it.value.toString() == tagId }?.key ?: tagId
+        }
+
+        main.certifications = main.certifications.map { certId ->
+            certsMap.entries.find { it.value.toString() == certId }?.key ?: certId
+        }
+
+        return main
     }
 
     /**
