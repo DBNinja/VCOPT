@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingHorizontal="@dimen/spacing_md"
+    android:paddingVertical="@dimen/spacing_sm"
+    android:gravity="center_vertical">
+
+    <!-- Temperature Label -->
+    <TextView
+        android:id="@+id/tvTempLabel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        style="@style/TextAppearance.OpenPrintTag.PropertyLabel"
+        android:text="Print" />
+
+    <!-- Temperature Value -->
+    <TextView
+        android:id="@+id/tvTempValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        style="@style/TextAppearance.OpenPrintTag.PropertyValue"
+        android:text="200-220°C" />
+
+</LinearLayout>

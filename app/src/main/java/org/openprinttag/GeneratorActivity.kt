@@ -3,7 +3,6 @@ package org.openprinttag
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
-
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -11,35 +10,37 @@ import android.os.Bundle
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import android.widget.Button
-import android.widget.EditText
+import android.widget.CheckBox
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import org.openprinttag.model.OpenPrintTagModel
-import org.openprinttag.model.Serializer
-import org.yaml.snakeyaml.Yaml
-import org.openprinttag.app.R   // use the actual namespace where R was generated
-import com.skydoves.colorpickerview.listeners.ColorEnvelopeListener
-import com.skydoves.colorpickerview.ColorEnvelope
-import java.io.InputStream
-import android.view.ViewGroup
-import android.widget.ArrayAdapter
-import android.widget.CheckBox
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.addTextChangedListener
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.chip.Chip
+import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
-import com.google.android.material.textfield.TextInputLayout
+import com.skydoves.colorpickerview.ColorEnvelope
 import com.skydoves.colorpickerview.ColorPickerDialog
+import com.skydoves.colorpickerview.listeners.ColorEnvelopeListener
+import org.openprinttag.app.R
 import org.openprinttag.app.databinding.ActivityGeneratorBinding
-import kotlin.collections.emptyList
-
+import org.openprinttag.model.OpenPrintTagModel
+import org.openprinttag.model.Serializer
+import org.yaml.snakeyaml.Yaml
+import java.io.InputStream
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 data class OptionEntry(
     var key: Int = 0,
@@ -47,14 +48,18 @@ data class OptionEntry(
     var category: String = "",
     var display_name: String = "",
     var description: String = "",
-    var implies: List<String> = emptyList<String>(),
-    var hints: List<String> = emptyList<String>(),
+    var implies: List<String> = emptyList(),
+    var hints: List<String> = emptyList(),
     var deprecated: String = ""
 )
 
-data class RootConfig(
-    val options: List<OptionEntry> = emptyList()
+data class CertEntry(
+    var key: Int = 0,
+    var name: String = "",
+    var display_name: String = "",
+    var description: String = ""
 )
+
 data class CategoryMetadata(
     val name: String,
     val display_name: String,
@@ -66,72 +71,25 @@ class HintSpinnerAdapter(
     resource: Int,
     objects: List<String>
 ) : ArrayAdapter<String>(context, resource, objects) {
-    // Helper to get the theme's primary text color
-    private fun getThemeTextColor(context: Context): Int {
-        val typedValue = TypedValue()
-        context.theme.resolveAttribute(android.R.attr.textColorPrimary, typedValue, true)
-        return ContextCompat.getColor(context, typedValue.resourceId)
-    }
-
-    /*
-    override fun isEnabled(position: Int): Boolean {
-        // Disable the first item (the hint) so it's not clickable
-        return position != 0
-    } */
-
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
         val view = super.getView(position, convertView, parent) as TextView
-        // Closed state color
-        if (position == 0) {
-            view.alpha = 0.6f // Standard "hint" look (works in light and dark)
-        } else {
-            view.alpha = 1.0f
-        }
+        view.alpha = if (position == 0) 0.6f else 1.0f
         return view
     }
-
 
     override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
-        val view = super.getDropDownView(position, convertView, parent)
-        val tv = view as TextView
+        val view = super.getDropDownView(position, convertView, parent) as TextView
         if (position == 0) {
-            // Hint color: use primary text with transparency or secondary color
             view.alpha = 0.5f
         } else {
-            // Match the theme's primary text color
-            view.setTextColor(getThemeTextColor(context))
+            val typedValue = TypedValue()
+            context.theme.resolveAttribute(android.R.attr.textColorPrimary, typedValue, true)
+            view.setTextColor(ContextCompat.getColor(context, typedValue.resourceId))
             view.alpha = 1.0f
         }
         return view
     }
 }
-
-class TagsYamlLoader {
-    fun loadFromResources(fileName: String): List<OptionEntry> {
-        // Access the file from the resources folder
-        val inputStream: InputStream? = this::class.java.classLoader.getResourceAsStream(fileName)
-        
-        requireNotNull(inputStream) { "Could not find file: $fileName" }
-        
-        val yaml = Yaml()
-        val rawData: List<Map<String, Any>> = yaml.load(inputStream)
-        
-        return rawData.map { map ->
-            OptionEntry(
-                key = map["key"] as? Int ?: 0,
-                name = map["name"] as? String ?: "",
-                category = map["category"] as? String ?: "",
-                display_name = map["display_name"] as? String ?: "",
-                description = map["description"] as? String ?: "",
-                implies = (map["implies"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
-                hints = (map["hints"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
-                deprecated = map["deprecated"] as? String ?: ""
-            )
-        }
-    }
-}
-
-
 
 data class SelectionUpdate(
     val newSelectedKeys: Set<Int>,
@@ -144,11 +102,10 @@ class SelectionManager(private val allOptions: List<OptionEntry>) {
 
     fun onOptionSelected(selectedKey: Int, currentSelection: Set<Int>): SelectionUpdate {
         val selectedOption = keyLookup[selectedKey] ?: return SelectionUpdate(currentSelection, emptyList())
-        
+
         val newSelection = currentSelection.toMutableSet()
         val suggestions = mutableListOf<OptionEntry>()
 
-        // 1. Process "Implies" (Recursive Auto-selection)
         val stack = mutableListOf(selectedOption)
         while (stack.isNotEmpty()) {
             val current = stack.removeAt(0)
@@ -159,7 +116,6 @@ class SelectionManager(private val allOptions: List<OptionEntry>) {
             }
         }
 
-        // 2. Process "Hints" (Non-automatic)
         selectedOption.hints.forEach { hintName ->
             nameLookup[hintName]?.let { hintOption ->
                 if (hintOption.key !in newSelection) {
@@ -172,255 +128,445 @@ class SelectionManager(private val allOptions: List<OptionEntry>) {
     }
 }
 
-
-
 class GeneratorActivity : AppCompatActivity() {
 
-
-    
-
-    @SuppressLint("ClickableViewAccessibility")
+    private lateinit var binding: ActivityGeneratorBinding
     private lateinit var selectionManager: SelectionManager
-    private var currentSelectedKeys = mutableSetOf<Int>()
-    private var allOptions: List<OptionEntry> = emptyList()
-    var color = 0x00
-    var hex = "%06X".format(0xFFFFFF and color)
+
+    private var currentSelectedTagKeys = mutableSetOf<Int>()
+    private var currentSelectedCertKeys = mutableSetOf<Int>()
+    private var allTagOptions: List<OptionEntry> = emptyList()
+    private var allCertOptions: List<CertEntry> = emptyList()
 
     private var categoryMap = mapOf<String, CategoryMetadata>()
-    val yaml = org.yaml.snakeyaml.Yaml()
-
 
     private var classMap = mapOf<String, Int>()
     private var typeMap = mapOf<String, Int>()
     private var tagsMap = mapOf<String, Int>()
     private var certsMap = mapOf<String, Int>()
 
-    private lateinit var autoCompleteMaterialType: MaterialAutoCompleteTextView
-    private lateinit var autoCompleteMaterialClass: MaterialAutoCompleteTextView
-    private lateinit var layoutMaterialType: TextInputLayout
-    private lateinit var layoutMaterialClass: TextInputLayout
+    // Date storage
+    private var manufacturedDate: LocalDate? = null
+    private var expirationDate: LocalDate? = null
 
+    // Color storage (hex without #)
+    private var primaryColorHex: String? = null
+    private var secondaryColor0Hex: String? = null
+    private var secondaryColor1Hex: String? = null
+    private var secondaryColor2Hex: String? = null
+    private var secondaryColor3Hex: String? = null
+    private var secondaryColor4Hex: String? = null
 
-
-
-
-    class HintSpinnerAdapter(
-        context: Context,
-        resource: Int,
-        objects: List<String>
-    ) : ArrayAdapter<String>(context, resource, objects) {
-
-        /*
-        override fun isEnabled(position: Int): Boolean {
-            // Disable the first item (the hint) so it's not clickable
-            return position != 0
-        }
-        */
-
-        override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
-            val view = super.getDropDownView(position, convertView, parent)
-            val tv = view as TextView
-            if (position == 0) {
-                // Set the hint text color to gray
-                tv.setTextColor(Color.GRAY)
-            } else {
-                // Set regular items to black (or your theme color)
-                tv.setTextColor(Color.BLACK)
-            }
-            return view
-        }
-    }
-    private fun loadMaterialTypesFromYaml(assetPath: String, fieldName: String): List<String> {
-        val names = mutableListOf<String>()
-        try {
-            val inputStream = assets.open(assetPath)
-            val rawData: List<Any>? = org.yaml.snakeyaml.Yaml().load(inputStream)
-
-            rawData?.forEach { entry ->
-                if (entry is Map<*, *>) {
-                    val value = entry[fieldName] as? String
-                    if (value != null) {
-                        names.add(value)
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        return names.sorted() // Optional: Sort alphabetically for the UI
-    }
-
-    private fun loadMetadata() {
-        try {
-            // Load Categories for Emojis
-            val catStream: InputStream = assets.open("data/tag_categories_enum.yaml")
-            val catData: List<Map<String, Any>> = Yaml().load(catStream)
-            categoryMap = catData.associate { map ->
-                val name = map["name"] as String
-                name to CategoryMetadata(
-                    name = name,
-                    display_name = map["display_name"] as String,
-                    emoji = map["emoji"] as? String ?: "📦"
-                )
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
+    private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
     sealed class TagDisplayItem {
         data class Header(val title: String) : TagDisplayItem()
         data class TagRow(val entry: OptionEntry) : TagDisplayItem()
     }
 
+    @SuppressLint("ClickableViewAccessibility")
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityGeneratorBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        // Handle system insets
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, windowInsets ->
+            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
+            windowInsets
+        }
+
+        // Setup toolbar
+        binding.toolbar.setNavigationOnClickListener { finish() }
+
+        // Load YAML maps
+        loadAllMaps()
+
+        // Initialize selection manager
+        selectionManager = SelectionManager(allTagOptions)
+
+        // Setup dropdowns
+        setupDropdowns()
+
+        // Setup color pickers
+        setupColorPickers()
+
+        // Setup date pickers
+        setupDatePickers()
+
+        // Setup tag and certification buttons
+        setupTagsAndCertsButtons()
+
+        // Setup generate button
+        setupGenerateButton()
+
+        // Pre-fill UI if cached data exists
+        val cachedData = intent.getByteArrayExtra("CACHED_TAG_DATA")
+        if (cachedData != null) {
+            val serializer = Serializer(classMap, typeMap, tagsMap, certsMap)
+            val decodedModel = serializer.deserialize(cachedData)
+            decodedModel?.let { preFillUI(it) }
+        }
+    }
+
+    private fun loadAllMaps() {
+        classMap = loadMapFromYaml("data/material_class_enum.yaml", "name")
+        typeMap = loadMapFromYaml("data/material_type_enum.yaml", "abbreviation")
+        tagsMap = loadMapFromYaml("data/tags_enum.yaml", "name")
+        certsMap = loadMapFromYaml("data/material_certifications_enum.yaml", "display_name")
+
+        loadTagsFromAssets()
+        loadCertsFromAssets()
+        loadMetadata()
+    }
+
     private fun loadMapFromYaml(fileName: String, labelKey: String): Map<String, Int> {
         val resultMap = mutableMapOf<String, Int>()
         try {
-            val inputStream = assets.open(fileName)
-            val yaml = org.yaml.snakeyaml.Yaml()
-            val rawData = yaml.load<List<Map<String, Any>>>(inputStream)
-
-            rawData?.forEach { entry ->
-                val label = entry[labelKey]?.toString()
-                val value = entry["key"]?.toString()?.toIntOrNull()
-
-                if (label != null && value != null) {
-                    resultMap[label] = value
-                }
-            }
-            inputStream.close()
-            android.util.Log.d("YAML", "Loaded ${resultMap.size} items from $fileName")
-        } catch (e: Exception) {
-            android.util.Log.e("YAML", "Error loading $fileName", e)
-        }
-        return resultMap
-    }
-/*
-    class OptionsAdapter(
-        private var options: List<OptionEntry>,
-        private val selectionManager: SelectionManager,
-        private val onSelectionChanged: (Set<Int>, List<OptionEntry>) -> Unit
-    ) : RecyclerView.Adapter<OptionsAdapter.OptionViewHolder>() {
-
-        private var selectedKeys = mutableSetOf<Int>()
-        private val TYPE_HEADER = 0
-        private val TYPE_TAG = 1
-
-
-        override fun getItemViewType(position: Int): Int {
-            return when (options[position]) {
-                is TagDisplayItem.Header -> TYPE_HEADER
-                is TagDisplayItem.TagRow -> TYPE_TAG
-            }
-        }
-        // 1. Fixed onCreateViewHolder: Ensure ViewGroup and Int are explicit
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-            val inflater = LayoutInflater.from(parent.context)
-            return if (viewType == TYPE_HEADER) {
-                // Reuse the TextView from your category_select.xml or create a small header layout
-                val view = inflater.inflate(R.layout.tag_category_header, parent, false)
-                HeaderViewHolder(view)
-            } else {
-                val view = inflater.inflate(R.layout.tag_selectable_option, parent, false)
-                TagViewHolder(view)
-            }
-        }
-
-        // 2. Fixed onBindViewHolder: Matches the ViewHolder type exactly
-        override fun onBindViewHolder(holder: OptionViewHolder, position: Int) {
-            holder.bind(options[position])
-        }
-
-        override fun getItemCount(): Int = options.size
-
-
-        inner class OptionViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val checkbox: CheckBox = view.findViewById(R.id.option_checkbox)
-            val title: TextView = view.findViewById(R.id.option_title)
-            val description: TextView = view.findViewById(R.id.option_description)
-
-            fun bind(option: OptionEntry) {
-                title.text = option.display_name
-                description.text = option.description
-
-                checkbox.setOnCheckedChangeListener(null)
-                checkbox.isChecked = selectedKeys.contains(option.key)
-
-                checkbox.setOnCheckedChangeListener { _, isChecked ->
-                    if (isChecked) {
-                        val update = selectionManager.onOptionSelected(option.key, selectedKeys)
-                        selectedKeys.addAll(update.newSelectedKeys)
-                        onSelectionChanged(selectedKeys, update.suggestions)
-                        notifyDataSetChanged()
-                    } else {
-                        selectedKeys.remove(option.key)
-                        onSelectionChanged(selectedKeys, emptyList())
+            assets.open(fileName).use { inputStream ->
+                val yaml = Yaml()
+                val rawData = yaml.load<List<Map<String, Any>>>(inputStream)
+                rawData?.forEach { entry ->
+                    val label = entry[labelKey]?.toString()
+                    val value = entry["key"]?.toString()?.toIntOrNull()
+                    if (label != null && value != null) {
+                        resultMap[label] = value
                     }
                 }
             }
+        } catch (e: Exception) {
+            android.util.Log.e("Generator", "Error loading $fileName", e)
+        }
+        return resultMap
+    }
+
+    private fun loadMetadata() {
+        try {
+            assets.open("data/tag_categories_enum.yaml").use { catStream ->
+                val catData: List<Map<String, Any>> = Yaml().load(catStream)
+                categoryMap = catData.associate { map ->
+                    val name = map["name"] as String
+                    name to CategoryMetadata(
+                        name = name,
+                        display_name = map["display_name"] as String,
+                        emoji = map["emoji"] as? String ?: ""
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
-    */
+    private fun loadTagsFromAssets() {
+        try {
+            assets.open("data/tags_enum.yaml").use { inputStream ->
+                val yaml = Yaml()
+                val loadedData = yaml.load<List<Map<String, Any>>>(inputStream)
 
-    private fun preFillUI(model: OpenPrintTagModel) {
-        // Basic Fields
-        val main = model.main
-        // 1. Strings: Only set if not null and not blank
-        main.brand?.takeIf { it.isNotBlank() }?.let {
-            findViewById<EditText>(R.id.getBrand).setText(it) 
+                allTagOptions = loadedData.filter { map ->
+                    val isDeprecated = map["deprecated"] as? Boolean ?: false
+                    !isDeprecated
+                }.map { map ->
+                    @Suppress("UNCHECKED_CAST")
+                    OptionEntry(
+                        key = (map["key"] as? Int) ?: 0,
+                        name = (map["name"] as? String) ?: "",
+                        category = (map["category"] as? String) ?: "",
+                        display_name = (map["display_name"] as? String) ?: "",
+                        description = (map["description"] as? String) ?: "",
+                        implies = (map["implies"] as? List<String>) ?: emptyList(),
+                        hints = (map["hints"] as? List<String>) ?: emptyList(),
+                        deprecated = (map["deprecated"] as? String) ?: ""
+                    )
+                }
+                selectionManager = SelectionManager(allTagOptions)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, R.string.toast_failed_load_tags, Toast.LENGTH_SHORT).show()
         }
-        main.materialName?.takeIf { it.isNotBlank() }?.let { 
-            findViewById<EditText>(R.id.getMaterialName).setText(it) 
+    }
+
+    private fun loadCertsFromAssets() {
+        try {
+            assets.open("data/material_certifications_enum.yaml").use { inputStream ->
+                val yaml = Yaml()
+                val loadedData = yaml.load<List<Map<String, Any>>>(inputStream)
+
+                allCertOptions = loadedData.map { map ->
+                    CertEntry(
+                        key = (map["key"] as? Int) ?: 0,
+                        name = (map["name"] as? String) ?: "",
+                        display_name = (map["display_name"] as? String) ?: "",
+                        description = (map["description"] as? String) ?: ""
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun setupDropdowns() {
+        // Material Class dropdown
+        val classAdapter = ArrayAdapter(this, R.layout.list_item, classMap.keys.toList())
+        binding.autoCompleteMaterialClass.setAdapter(classAdapter)
+
+        // Listen for material class changes to update field visibility
+        binding.autoCompleteMaterialClass.setOnItemClickListener { _, _, _, _ ->
+            updateFieldVisibilityForMaterialClass()
         }
 
-        main.primaryColor?.takeIf { it.isNotBlank() }?.let { colorHex ->
-            findViewById<EditText>(R.id.getColor).setText(colorHex)
-            // If you have a color preview button, update it here too
+        // Material Type dropdown
+        val typeAdapter = ArrayAdapter(this, R.layout.list_item, typeMap.keys.toList().sorted())
+        binding.autoCompleteMaterialType.setAdapter(typeAdapter)
+
+        // Material Type validation
+        binding.autoCompleteMaterialType.addTextChangedListener { text ->
+            val input = text?.toString() ?: ""
+            if (input.isNotEmpty() && !typeMap.containsKey(input)) {
+                binding.layoutMaterialType.error = getString(R.string.error_unknown_material)
+            } else {
+                binding.layoutMaterialType.error = null
+            }
+        }
+
+        // Write Protection dropdown
+        val writeProtectionOptions = listOf("None", "Protected", "Locked")
+        val wpAdapter = ArrayAdapter(this, R.layout.list_item, writeProtectionOptions)
+        binding.autoCompleteWriteProtection.setAdapter(wpAdapter)
+
+        // Set default visibility (FFF by default)
+        updateFieldVisibilityForMaterialClass()
+    }
+
+    private fun updateFieldVisibilityForMaterialClass() {
+        val materialClass = binding.autoCompleteMaterialClass.text?.toString() ?: "FFF"
+
+        when (materialClass.uppercase()) {
+            "SLA" -> {
+                // SLA: Show SLA fields, hide FFF-specific fields
+                binding.groupFffPhysical.visibility = View.GONE
+                binding.groupFffTemperatures.visibility = View.GONE
+                binding.groupFffContainer.visibility = View.GONE
+                binding.groupSlaFields.visibility = View.VISIBLE
+            }
+            "SLS" -> {
+                // SLS: Show temperatures (chamber temp relevant), hide filament-specific and SLA
+                binding.groupFffPhysical.visibility = View.GONE
+                binding.groupFffTemperatures.visibility = View.VISIBLE
+                binding.groupFffContainer.visibility = View.GONE
+                binding.groupSlaFields.visibility = View.GONE
+            }
+            else -> { // FFF (default)
+                // FFF: Show FFF fields, hide SLA fields
+                binding.groupFffPhysical.visibility = View.VISIBLE
+                binding.groupFffTemperatures.visibility = View.VISIBLE
+                binding.groupFffContainer.visibility = View.VISIBLE
+                binding.groupSlaFields.visibility = View.GONE
+            }
+        }
+    }
+
+    private fun setupColorPickers() {
+        // Primary color picker
+        binding.colorButton.setOnClickListener {
+            showColorPicker(binding.getColor, binding.colorButton) { hex ->
+                primaryColorHex = hex
+            }
+        }
+
+        binding.getColor.addTextChangedListener { text ->
+            updateColorButtonFromText(text?.toString(), binding.colorButton)
+            primaryColorHex = text?.toString()?.takeIf { it.length == 6 }
+        }
+
+        // Secondary color pickers
+        setupSecondaryColorPicker(binding.colorButton0, binding.getSecondaryColor0) { hex -> secondaryColor0Hex = hex }
+        setupSecondaryColorPicker(binding.colorButton1, binding.getSecondaryColor1) { hex -> secondaryColor1Hex = hex }
+        setupSecondaryColorPicker(binding.colorButton2, binding.getSecondaryColor2) { hex -> secondaryColor2Hex = hex }
+        setupSecondaryColorPicker(binding.colorButton3, binding.getSecondaryColor3) { hex -> secondaryColor3Hex = hex }
+        setupSecondaryColorPicker(binding.colorButton4, binding.getSecondaryColor4) { hex -> secondaryColor4Hex = hex }
+    }
+
+    private fun setupSecondaryColorPicker(
+        button: Button,
+        editText: com.google.android.material.textfield.TextInputEditText,
+        onColorChanged: (String?) -> Unit
+    ) {
+        button.setOnClickListener {
+            showColorPicker(editText, button, onColorChanged)
+        }
+        editText.addTextChangedListener { text ->
+            updateColorButtonFromText(text?.toString(), button)
+            onColorChanged(text?.toString()?.takeIf { it.length == 6 })
+        }
+    }
+
+    private fun showColorPicker(
+        editText: com.google.android.material.textfield.TextInputEditText,
+        button: Button,
+        onColorChanged: (String?) -> Unit
+    ) {
+        ColorPickerDialog.Builder(this)
+            .setTitle(getString(R.string.dialog_choose_color))
+            .setPreferenceName("ColorPickerSettings")
+            .setPositiveButton(getString(R.string.dialog_btn_confirm), object : ColorEnvelopeListener {
+                override fun onColorSelected(envelope: ColorEnvelope, fromUser: Boolean) {
+                    val hex = "%06X".format(0xFFFFFF and envelope.color)
+                    editText.setText(hex)
+                    button.backgroundTintList = ColorStateList.valueOf(envelope.color)
+                    onColorChanged(hex)
+                }
+            })
+            .attachBrightnessSlideBar(true)
+            .attachAlphaSlideBar(false)
+            .setNegativeButton(getString(R.string.dialog_btn_cancel)) { dialog, _ -> dialog.dismiss() }
+            .show()
+    }
+
+    private fun updateColorButtonFromText(hexText: String?, button: Button) {
+        if (hexText != null && hexText.length == 6) {
             try {
-                val colorInt = Color.parseColor("#$colorHex")
-                findViewById<Button>(R.id.colorButton).backgroundTintList = 
-                    ColorStateList.valueOf(colorInt)
-            } catch (e: Exception) { /* Invalid hex */ }
+                val color = Color.parseColor("#$hexText")
+                button.backgroundTintList = ColorStateList.valueOf(color)
+            } catch (_: Exception) {
+                // Invalid hex
+            }
         }
-
-        main.gtin?.takeIf { it.isNotBlank() }?.let { 
-                findViewById<EditText>(R.id.getGtin).setText(it) 
-        }
-
-        // Dropdowns
-        // materialType and materialClass are stored as Strings in the model after Serializer.decode
-        main.materialType?.let { typeName ->
-        val typeView = findViewById<MaterialAutoCompleteTextView>(R.id.autoCompleteMaterialType)
-        typeView.setText(typeName, false) 
-        }
-
-        main.materialClass?.let { className ->
-            val classView = findViewById<MaterialAutoCompleteTextView>(R.id.autoCompleteMaterialClass)
-            classView.setText(className, false)
-        }
-
-        main.minPrintTemp?.let { findViewById<EditText>(R.id.getMinTemp).setText(it.toString()) }
-        main.maxPrintTemp?.let { findViewById<EditText>(R.id.getMaxTemp).setText(it.toString()) }
-
-
-        // 4. Multi-select Tags
-        if (main.materialTags.isNotEmpty()) {
-            val recyclerView = findViewById<RecyclerView>(R.id.options_recycler_view)
-            val adapter = recyclerView.adapter as? OptionsAdapter
-            adapter?.updateSelectedTags(main.materialTags)
-        }
-
-
     }
 
+    private fun setupDatePickers() {
+        binding.getManufacturedDate.setOnClickListener {
+            showDatePicker(manufacturedDate) { date ->
+                manufacturedDate = date
+                binding.getManufacturedDate.setText(date.format(dateFormatter))
+            }
+        }
 
-    inner class OptionsAdapter(private val items: List<TagDisplayItem>) :
+        binding.getExpirationDate.setOnClickListener {
+            showDatePicker(expirationDate) { date ->
+                expirationDate = date
+                binding.getExpirationDate.setText(date.format(dateFormatter))
+            }
+        }
+    }
+
+    private fun showDatePicker(currentDate: LocalDate?, onDateSelected: (LocalDate) -> Unit) {
+        val selection = currentDate?.let {
+            it.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        } ?: MaterialDatePicker.todayInUtcMilliseconds()
+
+        val picker = MaterialDatePicker.Builder.datePicker()
+            .setTitleText("Select date")
+            .setSelection(selection)
+            .build()
+
+        picker.addOnPositiveButtonClickListener { millis ->
+            val date = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
+            onDateSelected(date)
+        }
+
+        picker.show(supportFragmentManager, "date_picker")
+    }
+
+    private fun setupTagsAndCertsButtons() {
+        binding.setTagsButton.setOnClickListener {
+            if (allTagOptions.isEmpty()) {
+                loadTagsFromAssets()
+            }
+            showTagSelectionPopup(getString(R.string.dialog_title_material_tags), allTagOptions)
+        }
+
+        binding.setCertificationsButton.setOnClickListener {
+            showCertSelectionDialog()
+        }
+    }
+
+    private fun showTagSelectionPopup(title: String, options: List<OptionEntry>) {
+        val groupedItems = mutableListOf<TagDisplayItem>()
+        val categories = options.groupBy { it.category }
+
+        for ((categoryName, tags) in categories) {
+            val displayName = categoryMap[categoryName]?.display_name
+                ?: categoryName.replaceFirstChar { it.uppercase() }
+            groupedItems.add(TagDisplayItem.Header(displayName))
+            tags.forEach { groupedItems.add(TagDisplayItem.TagRow(it)) }
+        }
+
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.tag_category_select, null)
+        val recyclerView = dialogView.findViewById<RecyclerView>(R.id.options_recycler_view)
+        val header = dialogView.findViewById<TextView>(R.id.category_header)
+        header.text = title
+
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.adapter = TagsAdapter(groupedItems)
+
+        AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setPositiveButton(R.string.dialog_btn_done) { _, _ ->
+                updateTagChips()
+            }
+            .show()
+    }
+
+    private fun showCertSelectionDialog() {
+        val displayNames = allCertOptions.map { it.display_name }.toTypedArray()
+        val checkedItems = allCertOptions.map { it.key in currentSelectedCertKeys }.toBooleanArray()
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.dialog_title_certifications)
+            .setMultiChoiceItems(displayNames, checkedItems) { _, which, isChecked ->
+                val key = allCertOptions[which].key
+                if (isChecked) {
+                    currentSelectedCertKeys.add(key)
+                } else {
+                    currentSelectedCertKeys.remove(key)
+                }
+            }
+            .setPositiveButton(R.string.dialog_btn_done) { _, _ ->
+                updateCertChips()
+            }
+            .show()
+    }
+
+    private fun updateTagChips() {
+        binding.chipGroupTags.removeAllViews()
+        allTagOptions.filter { it.key in currentSelectedTagKeys }.forEach { tag ->
+            val chip = Chip(this).apply {
+                text = tag.display_name
+                isCloseIconVisible = true
+                setOnCloseIconClickListener {
+                    currentSelectedTagKeys.remove(tag.key)
+                    updateTagChips()
+                }
+            }
+            binding.chipGroupTags.addView(chip)
+        }
+    }
+
+    private fun updateCertChips() {
+        binding.chipGroupCertifications.removeAllViews()
+        allCertOptions.filter { it.key in currentSelectedCertKeys }.forEach { cert ->
+            val chip = Chip(this).apply {
+                text = cert.display_name
+                isCloseIconVisible = true
+                setOnCloseIconClickListener {
+                    currentSelectedCertKeys.remove(cert.key)
+                    updateCertChips()
+                }
+            }
+            binding.chipGroupCertifications.addView(chip)
+        }
+    }
+
+    inner class TagsAdapter(private val items: List<TagDisplayItem>) :
         RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
         private val TYPE_HEADER = 0
         private val TYPE_TAG = 1
-
 
         override fun getItemViewType(position: Int): Int {
             return when (items[position]) {
@@ -432,12 +578,9 @@ class GeneratorActivity : AppCompatActivity() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
             val inflater = LayoutInflater.from(parent.context)
             return if (viewType == TYPE_HEADER) {
-                // Reuse the TextView from your category_select.xml or create a small header layout
-                val view = inflater.inflate(R.layout.tag_category_header, parent, false)
-                HeaderViewHolder(view)
+                HeaderViewHolder(inflater.inflate(R.layout.tag_category_header, parent, false))
             } else {
-                val view = inflater.inflate(R.layout.tag_selectable_option, parent, false)
-                TagViewHolder(view)
+                TagViewHolder(inflater.inflate(R.layout.tag_selectable_option, parent, false))
             }
         }
 
@@ -451,45 +594,27 @@ class GeneratorActivity : AppCompatActivity() {
                 holder.description.text = tag.description
 
                 holder.checkBox.setOnCheckedChangeListener(null)
-                holder.checkBox.isChecked = currentSelectedKeys.contains(tag.key)
+                holder.checkBox.isChecked = currentSelectedTagKeys.contains(tag.key)
                 holder.checkBox.setOnCheckedChangeListener { _, isChecked ->
                     if (isChecked) {
-                        // FIX: You must assign the result of the selection manager back to the state
-                        val update = selectionManager.onOptionSelected(tag.key, currentSelectedKeys)
-                        currentSelectedKeys.clear()
-                        currentSelectedKeys.addAll(update.newSelectedKeys)
+                        val update = selectionManager.onOptionSelected(tag.key, currentSelectedTagKeys)
+                        currentSelectedTagKeys.clear()
+                        currentSelectedTagKeys.addAll(update.newSelectedKeys)
 
-                        // Optional: Show a snackbar if there are suggestions/hints
                         if (update.suggestions.isNotEmpty()) {
                             val names = update.suggestions.joinToString { it.display_name }
-                            Toast.makeText(this@GeneratorActivity, "Consider also: $names", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@GeneratorActivity, getString(R.string.toast_consider_also, names), Toast.LENGTH_SHORT).show()
                         }
                     } else {
-                        currentSelectedKeys.remove(tag.key)
+                        currentSelectedTagKeys.remove(tag.key)
                     }
-                    notifyDataSetChanged() // Refreshes implies/dependencies
+                    notifyDataSetChanged()
                 }
             }
-        }
-        fun updateSelectedTags(namesFromTag: List<String>) {
-            // 1. Clear current selection
-            currentSelectedKeys.clear()
-
-            // 2. Map String names (e.g., "esd_safe") to Integer keys (e.g., 8)
-            namesFromTag.forEach { name ->
-                val key = tagsMap[name]
-                if (key != null) {
-                    currentSelectedKeys.add(key)
-                }
-            }
-
-            // 3. Notify the adapter to refresh the checkboxes
-            notifyDataSetChanged()
         }
 
         override fun getItemCount() = items.size
 
-        // Two distinct ViewHolders
         inner class HeaderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val title: TextView = view.findViewById(R.id.category_header_title)
         }
@@ -500,347 +625,226 @@ class GeneratorActivity : AppCompatActivity() {
             val checkBox: CheckBox = view.findViewById(R.id.option_checkbox)
         }
     }
-    
-    private fun handleSelectionUpdate(newKeys: Set<Int>, suggestions: List<OptionEntry>) {
-        // Update your app's global state
-        currentSelectedKeys = newKeys.toMutableSet()
 
-        // Show hints for each suggested item
-        suggestions.forEach { hint ->
-            Snackbar.make(findViewById(android.R.id.content),
-                "Suggestion: ${hint.display_name}", Snackbar.LENGTH_LONG)
-                .setAction("Add") {
-                    // Logic to select the hinted item if they click 'Add'
-                }
-                .show()
-        }
-    }
-
-    fun showSelectionPopup(categoryName: String, options: List<OptionEntry>) {
-
-        val groupedItems = mutableListOf<TagDisplayItem>()
-        val categories = options.groupBy { it.category }
-
-        val builder = AlertDialog.Builder(this)
-        val inflater = LayoutInflater.from(this)
-        val dialogView = inflater.inflate(R.layout.tag_category_select, null)
-
-        val recyclerView = dialogView.findViewById<RecyclerView>(R.id.options_recycler_view)
-        val header = dialogView.findViewById<TextView>(R.id.category_header)
-
-        header.text = categoryName
-
-        for ((categoryName, tags) in categories) {
-            // Add the Header (you could map 'biological' to 'Biological Properties' here)
-            groupedItems.add(TagDisplayItem.Header(categoryName.replaceFirstChar { it.uppercase() }))
-
-            // Add all tags belonging to this category
-            tags.forEach { groupedItems.add(TagDisplayItem.TagRow(it)) }
-        }
-
-        // Set up RecyclerView with an adapter using your OptionEntry list
-        recyclerView.layoutManager = LinearLayoutManager(this)
-        recyclerView.adapter = OptionsAdapter(groupedItems)
-        AlertDialog.Builder(this)
-            .setTitle(title)
-            .setView(dialogView)
-            .setPositiveButton("Done", null)
-            .show()
-    }
-
-
-    fun showColorPickerDialog() {
-        val getColor = findViewById<EditText>(R.id.getColor)
-        val colorButton = findViewById<Button>(R.id.colorButton)
-
-        ColorPickerDialog.Builder(this)
-        .setTitle("Choose Color")
-        .setPreferenceName("MyColorPickerSettings") // Remembers the last color picked
-        .setPositiveButton("Confirm", object : ColorEnvelopeListener {
-            override fun onColorSelected(envelope: ColorEnvelope, fromUser: Boolean) {
-                val selectedColor = envelope.color
-                val hexCode = envelope.hexCode
-                
-                // Do something with the color (e.g., change a view's background)
-                // R.setBackgroundColor(selectedColor)
-                color = selectedColor
-                hex = "%06X".format(0xFFFFFF and color)
-                getColor.setText(hex)
-                colorButton.backgroundTintList = ColorStateList.valueOf(color)
-            }
-        })
-        .attachBrightnessSlideBar(true) // Optional: Add brightness slider
-        .attachAlphaSlideBar(false)
-        .setNegativeButton("Cancel") { dialogInterface, _ -> 
-            dialogInterface.dismiss() 
-        }
-        //.bottomSpace(12) // Space between sliders and buttons
-
-        .show()
-
-    }
-    private fun loadTagsFromAssets() {
-        try {
-            // Access the asset manager directly from the Activity context
-            val inputStream: InputStream = assets.open("data/tags_enum.yaml")
-
-            val yaml = Yaml()
-            // Load the list of maps from YAML
-            val loadedData = yaml.load<List<Map<String, Any>>>(inputStream)
-
-            // Map the raw YAML data to your OptionEntry objects
-            allOptions = loadedData .filter { map ->
-                // Exclude if 'deprecated' is explicitly true
-                val isDeprecated = map["deprecated"] as? Boolean ?: false
-                !isDeprecated
-            } .map { map ->
-                OptionEntry(
-                    key = (map["key"] as? Int) ?: 0,
-                    name = (map["name"] as? String) ?: "",
-                    category = (map["category"] as? String) ?: "",
-                    display_name = (map["display_name"] as? String) ?: "",
-                    description = (map["description"] as? String) ?: "",
-                    // Handle the 'implies' list if it exists
-                    implies = (map["implies"] as? List<String>) ?: emptyList(),
-                    hints = (map["hints"] as? List<String>) ?: emptyList(),
-                    deprecated =  (map["deprecated"] as? String) ?: ""
-                )
-            }
-
-            // Initialize the selection manager with the loaded options
-            selectionManager = SelectionManager(allOptions)
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(this, "Failed to load tags from assets", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-
-
-    private lateinit var binding: ActivityGeneratorBinding
-    @SuppressLint("ClickableViewAccessibility")
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        //setContentView(R.layout.activity_generator)
-        // Inflate and set the root
-        binding = ActivityGeneratorBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        // Fix the "Camera Notch" overlap
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, windowInsets ->
-            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
-            windowInsets
-        }
-
-        classMap = loadMapFromYaml("data/material_class_enum.yaml", "name")
-        typeMap  = loadMapFromYaml("data/material_type_enum.yaml", "abbreviation")
-        tagsMap  = loadMapFromYaml("data/tags_enum.yaml", "name")
-        certsMap = loadMapFromYaml("data/material_certifications_enum.yaml", "display_name")
-
-
-
-        selectionManager = SelectionManager(allOptions)
-        val getBrand = findViewById<EditText>(R.id.getBrand)
-        val getMaterialName = findViewById<EditText>(R.id.getMaterialName)
-        val getColor = findViewById<EditText>(R.id.getColor)
-        val getGtin = findViewById<EditText>(R.id.getGtin)
-        val getMin = findViewById<EditText>(R.id.getMinTemp)
-        val getMax = findViewById<EditText>(R.id.getMaxTemp)
-        var model = OpenPrintTagModel()
-
-
-        val cachedData = intent.getByteArrayExtra("CACHED_TAG_DATA")
-        if (cachedData != null) {
-            // 1. Initialize your Serializer
+    private fun setupGenerateButton() {
+        binding.btnGenerateBin.setOnClickListener {
+            val model = buildModelFromUI()
             val serializer = Serializer(classMap, typeMap, tagsMap, certsMap)
-            
-            // 2. Decode the bytes into your Model
-            val decodedModel = serializer.deserialize(cachedData)
-            
-            // 3. Pre-fill the UI
-            decodedModel?.let { preFillUI(it) }
-        }
-
-        autoCompleteMaterialType = findViewById<MaterialAutoCompleteTextView>(R.id.autoCompleteMaterialType)
-        autoCompleteMaterialClass = findViewById<MaterialAutoCompleteTextView>(R.id.autoCompleteMaterialClass)
-        val btnGenerate = findViewById<Button>(R.id.btnGenerateBin)
-        btnGenerate.setOnClickListener {
-            val selectedTagNames = allOptions
-                .filter { it.key in currentSelectedKeys }
-                .map { it.name }
-
-            model.main.brand = getBrand.text.toString()
-            model.main.materialName = getMaterialName.text.toString()
-            model.main.primaryColor = getColor.text.toString()
-            model.main.gtin = getGtin.text.toString().ifBlank { null }
-            model.main.minPrintTemp = getMin.text.toString().toIntOrNull()
-            model.main.maxPrintTemp = getMax.text.toString().toIntOrNull()
-            model.main.materialType = autoCompleteMaterialType.text.toString()
-            model.main.materialTags = currentSelectedKeys.map { key ->
-                allOptions.find { it.key == key }?.name ?: ""
-            }
-
-
-
-            // 2. Instantiate Serializer with dynamic maps
-            val serializer = Serializer(classMap, typeMap, tagsMap, certsMap)
-
-            // 3. Serialize
             val bin = serializer.serialize(model)
+
             val resultIntent = Intent()
-
-            val typedValue = autoCompleteMaterialType.text.toString()
-
             resultIntent.putExtra("GEN_BIN_DATA", bin)
             setResult(Activity.RESULT_OK, resultIntent)
-
-            /*
-            val f = File(filesDir, "openprinttag.bin")
-            FileOutputStream(f).use { it.write(bin) }
-            Toast.makeText(this, "Generated ${bin.size} bytes -> ${f.absolutePath}", Toast.LENGTH_LONG).show()
-            val out = Intent()
-            out.putExtra("bin_path", f.absolutePath)
-
-            setResult(Activity.RESULT_OK, out)
-            */
-
             finish()
         }
-
-
-        //val spinnerMaterialType: Spinner = findViewById(R.id.spinnerMaterialType)
-
-
-        // 1. Load the abbreviations from material_type_enum.yaml
-        val materialTypes = loadMaterialTypesFromYaml("data/material_type_enum.yaml", "abbreviation").toMutableList()
-
-        // 2. Add your prompt to the very first position (index 0)
-        //materialTypes.add(0, "Select Material Type...")
-
-        // 2. Create the Adapter
-        // 2. Use the Custom Hint Adapter
-        /*
-        val adapter = HintSpinnerAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            materialTypes
-        )
-        */
-        val adapter = ArrayAdapter(this, R.layout.list_item, materialTypes)
-        autoCompleteMaterialType.setAdapter(adapter)
-        autoCompleteMaterialType.setOnClickListener {
-            autoCompleteMaterialType.showDropDown()
-        }
-
-        // 3. Handle Selection
-        autoCompleteMaterialType.setOnItemClickListener { parent, _, position, _ ->
-            val selectedType = parent.getItemAtPosition(position) as String
-
-        }
-        val layoutMaterialType = findViewById<TextInputLayout>(R.id.layoutMaterialType)
-
-        // Handle when the user types or clicks the (X) button
-        autoCompleteMaterialType.addTextChangedListener { text ->
-            val input = text?.toString() ?: ""
-            if (input.isNotEmpty() && !typeMap.containsKey(input)) {
-                layoutMaterialType.error = "Unknown Material"
-            } else {
-                layoutMaterialType.error = null // Everything is valid
-            }
-
-
-
-
-            if (input.isEmpty()) {
-                model.main.materialType = null
-            } else {
-                // We update the model, but we will validate against
-                // our typeMap during the "Generate" click.
-                model.main.materialType = input
-            }
-        }
-
-
-        /*
-        // 3. Set the dropdown layout style
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-
-        // 4. Attach to Spinner
-        spinnerMaterialType.adapter = adapter
-        */
-
-        val colorButton = findViewById<Button>(R.id.colorButton)
-        colorButton.setOnClickListener {
-            showColorPickerDialog()
-        }
-
-        val setTagsButton = findViewById<Button>(R.id.setTagsButton)
-        setTagsButton.setOnClickListener {
-            // 1. Load all options from the YAML if not already loaded
-            if (allOptions.isEmpty()) {
-                loadTagsFromAssets()
-            }
-
-            // 3. Show the selection popup
-            // You could further group these by 'category' from the YAML for a better UX
-            showSelectionPopup("Material Tags", allOptions)
-
-        }
-
-
-        setupDropdowns()
-
     }
 
+    private fun buildModelFromUI(): OpenPrintTagModel {
+        val model = OpenPrintTagModel()
+        val main = model.main
 
-    private fun setupDropdowns() {
-        // 1. Material Type Dropdown
-        val typeAdapter = ArrayAdapter(
-            this,
-            R.layout.list_item,
-            typeMap.keys.toList() // Extract just the names (PLA, ABS, etc.)
-        )
-        autoCompleteMaterialType.setAdapter(typeAdapter)
+        // Identity
+        main.brand_name = binding.getBrand.text?.toString()?.takeIf { it.isNotBlank() }
+        main.material_name = binding.getMaterialName.text?.toString()?.takeIf { it.isNotBlank() }
+        main.gtin = binding.getGtin.text?.toString()?.takeIf { it.isNotBlank() }
+        main.country_of_origin = binding.getCountryOfOrigin.text?.toString()?.takeIf { it.isNotBlank() }
 
-        // 2. Material Class Dropdown
-        val classAdapter = ArrayAdapter(
-            this,
-            R.layout.list_item,
-            classMap.keys.toList()
-        )
-        autoCompleteMaterialClass.setAdapter(classAdapter)
+        // Material classification
+        main.material_class = binding.autoCompleteMaterialClass.text?.toString()?.ifBlank { "FFF" } ?: "FFF"
+        main.material_type = binding.autoCompleteMaterialType.text?.toString()?.takeIf { it.isNotBlank() }
+        main.material_abbreviation = binding.getMaterialAbbrev.text?.toString()?.takeIf { it.isNotBlank() }
 
-        // 3. Tag Type Dropdown
-        val tagAdapter = ArrayAdapter(
-            this,
-            R.layout.list_item,
-            tagsMap.keys.toList()
-        )
+        // Colors
+        main.primary_color = primaryColorHex
+        main.secondary_color_0 = secondaryColor0Hex
+        main.secondary_color_1 = secondaryColor1Hex
+        main.secondary_color_2 = secondaryColor2Hex
+        main.secondary_color_3 = secondaryColor3Hex
+        main.secondary_color_4 = secondaryColor4Hex
+
+        // Weights
+        main.nominal_netto_full_weight = binding.getNominalWeight.text?.toString()?.toFloatOrNull()
+        main.actual_netto_full_weight = binding.getActualWeight.text?.toString()?.toFloatOrNull()
+        main.empty_container_weight = binding.getEmptyContainerWeight.text?.toString()?.toFloatOrNull()
+
+        // Physical properties
+        main.filament_diameter = binding.getFilamentDiameter.text?.toString()?.toFloatOrNull()
+        main.density = binding.getDensity.text?.toString()?.toFloatOrNull()
+        main.min_nozzle_diameter = binding.getMinNozzleDiameter.text?.toString()?.toFloatOrNull()
+        main.shore_hardness_a = binding.getShoreHardnessA.text?.toString()?.toIntOrNull()
+        main.shore_hardness_d = binding.getShoreHardnessD.text?.toString()?.toIntOrNull()
+        main.nominal_full_length = binding.getNominalLength.text?.toString()?.toFloatOrNull()
+        main.actual_full_length = binding.getActualLength.text?.toString()?.toFloatOrNull()
+
+        // Temperatures
+        main.min_print_temperature = binding.getMinTemp.text?.toString()?.toIntOrNull()
+        main.max_print_temperature = binding.getMaxTemp.text?.toString()?.toIntOrNull()
+        main.min_bed_temperature = binding.getMinBedTemp.text?.toString()?.toIntOrNull()
+        main.max_bed_temperature = binding.getMaxBedTemp.text?.toString()?.toIntOrNull()
+        main.min_chamber_temperature = binding.getMinChamberTemp.text?.toString()?.toIntOrNull()
+        main.max_chamber_temperature = binding.getMaxChamberTemp.text?.toString()?.toIntOrNull()
+        main.preheat_temperature = binding.getPreheatTemp.text?.toString()?.toIntOrNull()
+        main.chamber_temperature = binding.getChamberTemp.text?.toString()?.toIntOrNull()
+
+        // Container dimensions
+        main.container_width = binding.getContainerWidth.text?.toString()?.toIntOrNull()
+        main.container_outer_diameter = binding.getContainerOuterDiameter.text?.toString()?.toIntOrNull()
+        main.container_inner_diameter = binding.getContainerInnerDiameter.text?.toString()?.toIntOrNull()
+        main.container_hole_diameter = binding.getContainerHoleDiameter.text?.toString()?.toIntOrNull()
+
+        // SLA properties
+        main.viscosity_18c = binding.getViscosity18c.text?.toString()?.toFloatOrNull()
+        main.viscosity_25c = binding.getViscosity25c.text?.toString()?.toFloatOrNull()
+        main.viscosity_40c = binding.getViscosity40c.text?.toString()?.toFloatOrNull()
+        main.viscosity_60c = binding.getViscosity60c.text?.toString()?.toFloatOrNull()
+        main.cure_wavelength = binding.getCureWavelength.text?.toString()?.toIntOrNull()
+        main.container_volumetric_capacity = binding.getContainerVolume.text?.toString()?.toFloatOrNull()
+
+        // Dates
+        main.manufactured_date = manufacturedDate
+        main.expiration_date = expirationDate
+
+        // UUIDs
+        main.instance_uuid = binding.getInstanceUuid.text?.toString()?.takeIf { it.isNotBlank() }
+        main.package_uuid = binding.getPackageUuid.text?.toString()?.takeIf { it.isNotBlank() }
+        main.material_uuid = binding.getMaterialUuid.text?.toString()?.takeIf { it.isNotBlank() }
+        main.brand_uuid = binding.getBrandUuid.text?.toString()?.takeIf { it.isNotBlank() }
+
+        // Brand-specific IDs
+        main.brand_specific_instance_id = binding.getBrandInstanceId.text?.toString()?.takeIf { it.isNotBlank() }
+        main.brand_specific_package_id = binding.getBrandPackageId.text?.toString()?.takeIf { it.isNotBlank() }
+        main.brand_specific_material_id = binding.getBrandMaterialId.text?.toString()?.takeIf { it.isNotBlank() }
+
+        // Write protection
+        main.write_protection = binding.autoCompleteWriteProtection.text?.toString()?.takeIf { it.isNotBlank() && it != "None" }
+
+        // Tags and certifications
+        main.tags = allTagOptions.filter { it.key in currentSelectedTagKeys }.map { it.name }
+        main.certifications = allCertOptions.filter { it.key in currentSelectedCertKeys }.map { it.display_name }
+
+        return model
     }
 
+    private fun preFillUI(model: OpenPrintTagModel) {
+        val main = model.main
 
-        /*
-        val colorPickerView = findViewById<com.skydoves.colorpickerview.ColorPickerView>(R.id.colorPickerView)
-        colorPickerView.setColorListener(ColorEnvelopeListener { envelope, fromUser ->
-            val color = envelope.color // Int color
-            val hex = "%06X".format(0xFFFFFF and color)
+        // Identity
+        main.brand_name?.takeIf { it.isNotBlank() }?.let { binding.getBrand.setText(it) }
+        main.material_name?.takeIf { it.isNotBlank() }?.let { binding.getMaterialName.setText(it) }
+        main.gtin?.takeIf { it.isNotBlank() }?.let { binding.getGtin.setText(it) }
+        main.country_of_origin?.takeIf { it.isNotBlank() }?.let { binding.getCountryOfOrigin.setText(it) }
 
-            // colorButton.backgroundTintList =  ColorStateList.valueOf(Color.parseColor(hex))
-            colorButton.backgroundTintList = ColorStateList.valueOf(color)
-            getColor.setText(hex)
+        // Material classification
+        main.material_class.takeIf { it.isNotBlank() }?.let { binding.autoCompleteMaterialClass.setText(it, false) }
+        main.material_type?.takeIf { it.isNotBlank() }?.let { binding.autoCompleteMaterialType.setText(it, false) }
+        main.material_abbreviation?.takeIf { it.isNotBlank() }?.let { binding.getMaterialAbbrev.setText(it) }
 
-            colorPickerView.setOnTouchListener { v, event ->
-                // Tell the ScrollView to stop stealing touch events while we pick a color
-                v.parent.requestDisallowInterceptTouchEvent(true)
-                false
+        // Colors
+        main.primary_color?.takeIf { it.isNotBlank() }?.let { hex ->
+            binding.getColor.setText(hex)
+            primaryColorHex = hex
+            updateColorButtonFromText(hex, binding.colorButton)
+        }
+        main.secondary_color_0?.let { setSecondaryColor(it, binding.getSecondaryColor0, binding.colorButton0) { secondaryColor0Hex = it } }
+        main.secondary_color_1?.let { setSecondaryColor(it, binding.getSecondaryColor1, binding.colorButton1) { secondaryColor1Hex = it } }
+        main.secondary_color_2?.let { setSecondaryColor(it, binding.getSecondaryColor2, binding.colorButton2) { secondaryColor2Hex = it } }
+        main.secondary_color_3?.let { setSecondaryColor(it, binding.getSecondaryColor3, binding.colorButton3) { secondaryColor3Hex = it } }
+        main.secondary_color_4?.let { setSecondaryColor(it, binding.getSecondaryColor4, binding.colorButton4) { secondaryColor4Hex = it } }
 
+        // Weights
+        main.nominal_netto_full_weight?.let { binding.getNominalWeight.setText(it.toString()) }
+        main.actual_netto_full_weight?.let { binding.getActualWeight.setText(it.toString()) }
+        main.empty_container_weight?.let { binding.getEmptyContainerWeight.setText(it.toString()) }
+
+        // Physical properties
+        main.filament_diameter?.let { binding.getFilamentDiameter.setText(it.toString()) }
+        main.density?.let { binding.getDensity.setText(it.toString()) }
+        main.min_nozzle_diameter?.let { binding.getMinNozzleDiameter.setText(it.toString()) }
+        main.shore_hardness_a?.let { binding.getShoreHardnessA.setText(it.toString()) }
+        main.shore_hardness_d?.let { binding.getShoreHardnessD.setText(it.toString()) }
+        main.nominal_full_length?.let { binding.getNominalLength.setText(it.toString()) }
+        main.actual_full_length?.let { binding.getActualLength.setText(it.toString()) }
+
+        // Temperatures
+        main.min_print_temperature?.let { binding.getMinTemp.setText(it.toString()) }
+        main.max_print_temperature?.let { binding.getMaxTemp.setText(it.toString()) }
+        main.min_bed_temperature?.let { binding.getMinBedTemp.setText(it.toString()) }
+        main.max_bed_temperature?.let { binding.getMaxBedTemp.setText(it.toString()) }
+        main.min_chamber_temperature?.let { binding.getMinChamberTemp.setText(it.toString()) }
+        main.max_chamber_temperature?.let { binding.getMaxChamberTemp.setText(it.toString()) }
+        main.preheat_temperature?.let { binding.getPreheatTemp.setText(it.toString()) }
+        main.chamber_temperature?.let { binding.getChamberTemp.setText(it.toString()) }
+
+        // Container dimensions
+        main.container_width?.let { binding.getContainerWidth.setText(it.toString()) }
+        main.container_outer_diameter?.let { binding.getContainerOuterDiameter.setText(it.toString()) }
+        main.container_inner_diameter?.let { binding.getContainerInnerDiameter.setText(it.toString()) }
+        main.container_hole_diameter?.let { binding.getContainerHoleDiameter.setText(it.toString()) }
+
+        // SLA properties
+        main.viscosity_18c?.let { binding.getViscosity18c.setText(it.toString()) }
+        main.viscosity_25c?.let { binding.getViscosity25c.setText(it.toString()) }
+        main.viscosity_40c?.let { binding.getViscosity40c.setText(it.toString()) }
+        main.viscosity_60c?.let { binding.getViscosity60c.setText(it.toString()) }
+        main.cure_wavelength?.let { binding.getCureWavelength.setText(it.toString()) }
+        main.container_volumetric_capacity?.let { binding.getContainerVolume.setText(it.toString()) }
+
+        // Dates
+        main.manufactured_date?.let { date ->
+            manufacturedDate = date
+            binding.getManufacturedDate.setText(date.format(dateFormatter))
+        }
+        main.expiration_date?.let { date ->
+            expirationDate = date
+            binding.getExpirationDate.setText(date.format(dateFormatter))
+        }
+
+        // UUIDs
+        main.instance_uuid?.let { binding.getInstanceUuid.setText(it) }
+        main.package_uuid?.let { binding.getPackageUuid.setText(it) }
+        main.material_uuid?.let { binding.getMaterialUuid.setText(it) }
+        main.brand_uuid?.let { binding.getBrandUuid.setText(it) }
+
+        // Brand-specific IDs
+        main.brand_specific_instance_id?.let { binding.getBrandInstanceId.setText(it) }
+        main.brand_specific_package_id?.let { binding.getBrandPackageId.setText(it) }
+        main.brand_specific_material_id?.let { binding.getBrandMaterialId.setText(it) }
+
+        // Write protection
+        main.write_protection?.let { binding.autoCompleteWriteProtection.setText(it, false) }
+
+        // Tags
+        if (main.tags.isNotEmpty()) {
+            currentSelectedTagKeys.clear()
+            main.tags.forEach { name ->
+                tagsMap[name]?.let { currentSelectedTagKeys.add(it) }
             }
+            updateTagChips()
+        }
 
-        }) */
+        // Certifications
+        if (main.certifications.isNotEmpty()) {
+            currentSelectedCertKeys.clear()
+            main.certifications.forEach { displayName ->
+                certsMap[displayName]?.let { currentSelectedCertKeys.add(it) }
+            }
+            updateCertChips()
+        }
 
-    // Setup the Adapters
+        // Update field visibility based on loaded material class
+        updateFieldVisibilityForMaterialClass()
+    }
+
+    private fun setSecondaryColor(
+        hex: String,
+        editText: com.google.android.material.textfield.TextInputEditText,
+        button: Button,
+        setter: () -> Unit
+    ) {
+        if (hex.isNotBlank()) {
+            editText.setText(hex)
+            updateColorButtonFromText(hex, button)
+            setter()
+        }
+    }
 }
-

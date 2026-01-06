@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Component Theme Overlays -->
+
+    <!-- Card Style -->
+    <style name="Widget.OpenPrintTag.Card" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardCornerRadius">@dimen/card_corner_radius</item>
+        <item name="cardElevation">@dimen/card_elevation</item>
+        <item name="contentPadding">@dimen/card_padding</item>
+        <item name="cardBackgroundColor">@color/surface_elevated</item>
+    </style>
+
+    <style name="Widget.OpenPrintTag.Card.Outlined" parent="Widget.Material3.CardView.Outlined">
+        <item name="cardCornerRadius">@dimen/card_corner_radius</item>
+        <item name="strokeColor">@color/outline</item>
+        <item name="strokeWidth">@dimen/divider_thickness</item>
+        <item name="contentPadding">@dimen/card_padding</item>
+    </style>
+
+    <!-- Button Styles -->
+    <style name="Widget.OpenPrintTag.Button.Filled" parent="Widget.Material3.Button">
+        <item name="cornerRadius">@dimen/button_corner_radius</item>
+        <item name="android:minHeight">@dimen/button_height</item>
+        <item name="backgroundTint">@color/primary</item>
+    </style>
+
+    <style name="Widget.OpenPrintTag.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="cornerRadius">@dimen/button_corner_radius</item>
+        <item name="android:minHeight">@dimen/button_height</item>
+        <item name="strokeColor">@color/outline</item>
+    </style>
+
+    <style name="Widget.OpenPrintTag.Button.Text" parent="Widget.Material3.Button.TextButton">
+        <item name="cornerRadius">@dimen/button_corner_radius</item>
+        <item name="android:minHeight">@dimen/button_height</item>
+    </style>
+
+    <!-- Chip Styles -->
+    <style name="Widget.OpenPrintTag.Chip" parent="Widget.Material3.Chip.Assist">
+        <item name="chipCornerRadius">@dimen/chip_corner_radius</item>
+        <item name="chipMinHeight">@dimen/chip_height</item>
+        <item name="chipBackgroundColor">@color/primary_container</item>
+        <item name="android:textColor">@color/on_primary_container</item>
+    </style>
+
+    <style name="Widget.OpenPrintTag.Chip.Outlined" parent="Widget.Material3.Chip.Assist">
+        <item name="chipCornerRadius">@dimen/chip_corner_radius</item>
+        <item name="chipMinHeight">@dimen/chip_height</item>
+        <item name="chipBackgroundColor">@android:color/transparent</item>
+        <item name="chipStrokeColor">@color/outline</item>
+        <item name="chipStrokeWidth">1dp</item>
+    </style>
+
+    <!-- Mode Chip -->
+    <style name="Widget.OpenPrintTag.ModeChip.Read" parent="Widget.Material3.Chip.Assist">
+        <item name="chipCornerRadius">@dimen/mode_chip_corner_radius</item>
+        <item name="chipMinHeight">@dimen/mode_chip_height</item>
+        <item name="chipBackgroundColor">@color/status_read</item>
+        <item name="android:textColor">@color/mode_read_text</item>
+    </style>
+
+    <style name="Widget.OpenPrintTag.ModeChip.Write" parent="Widget.Material3.Chip.Assist">
+        <item name="chipCornerRadius">@dimen/mode_chip_corner_radius</item>
+        <item name="chipMinHeight">@dimen/mode_chip_height</item>
+        <item name="chipBackgroundColor">@color/status_write</item>
+        <item name="android:textColor">@color/mode_write_text</item>
+    </style>
+
+    <!-- Text Input -->
+    <style name="Widget.OpenPrintTag.TextInput" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxCornerRadiusBottomEnd">@dimen/button_corner_radius</item>
+        <item name="boxCornerRadiusBottomStart">@dimen/button_corner_radius</item>
+        <item name="boxCornerRadiusTopEnd">@dimen/button_corner_radius</item>
+        <item name="boxCornerRadiusTopStart">@dimen/button_corner_radius</item>
+        <item name="boxStrokeColor">@color/outline</item>
+    </style>
+
+    <!-- Divider -->
+    <style name="Widget.OpenPrintTag.Divider" parent="">
+        <item name="android:background">@color/divider</item>
+        <item name="android:layout_height">@dimen/divider_thickness</item>
+        <item name="android:layout_width">match_parent</item>
+    </style>
+
+    <!-- Progress Bar -->
+    <style name="Widget.OpenPrintTag.ProgressBar" parent="Widget.Material3.LinearProgressIndicator">
+        <item name="trackThickness">@dimen/progress_bar_height</item>
+        <item name="trackCornerRadius">@dimen/progress_bar_corner_radius</item>
+        <item name="indicatorColor">@color/primary</item>
+        <item name="trackColor">@color/surface_container</item>
+    </style>
+
+    <!-- Bottom Sheet -->
+    <style name="Widget.OpenPrintTag.BottomSheet" parent="Widget.Material3.BottomSheet">
+        <item name="shapeAppearance">@style/ShapeAppearance.OpenPrintTag.LargeComponent</item>
+    </style>
+
+    <!-- Shape Appearances -->
+    <style name="ShapeAppearance.OpenPrintTag.LargeComponent" parent="ShapeAppearance.Material3.LargeComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">16dp</item>
+        <item name="cornerSizeTopRight">16dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+
+    <!-- FAB -->
+    <style name="Widget.OpenPrintTag.FAB" parent="Widget.Material3.ExtendedFloatingActionButton.Primary">
+        <item name="backgroundTint">@color/primary</item>
+    </style>
+
+    <!-- Toolbar -->
+    <style name="Widget.OpenPrintTag.Toolbar" parent="Widget.Material3.Toolbar">
+        <item name="titleTextAppearance">@style/TextAppearance.OpenPrintTag.TitleLarge</item>
+    </style>
+</resources>

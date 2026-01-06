@@ -1,8 +1,61 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Modern Minimal Color Palette - Light Mode -->
+
+    <!-- Surface Colors -->
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_elevated">#FAFAFA</color>
+    <color name="surface_container">#F5F5F5</color>
+    <color name="surface_container_high">#EEEEEE</color>
+    <color name="on_surface">#1F2937</color>
+    <color name="on_surface_variant">#6B7280</color>
+
+    <!-- Primary - Teal accent -->
+    <color name="primary">#14B8A6</color>
+    <color name="primary_dark">#0D9488</color>
+    <color name="primary_light">#5EEAD4</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="primary_container">#CCFBF1</color>
+    <color name="on_primary_container">#042F2E</color>
+
+    <!-- Secondary -->
+    <color name="secondary">#6B7280</color>
+    <color name="secondary_container">#E5E7EB</color>
+    <color name="on_secondary_container">#1F2937</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#1F2937</color>
+    <color name="text_secondary">#6B7280</color>
+    <color name="text_tertiary">#9CA3AF</color>
+    <color name="text_disabled">#D1D5DB</color>
+
+    <!-- Status Colors -->
+    <color name="status_read">#10B981</color>
+    <color name="status_read_container">#D1FAE5</color>
+    <color name="status_write">#F59E0B</color>
+    <color name="status_write_container">#FEF3C7</color>
+    <color name="status_error">#EF4444</color>
+    <color name="status_error_container">#FEE2E2</color>
+    <color name="status_success">#10B981</color>
+
+    <!-- Mode indicator colors (updated for better theme support) -->
+    <color name="mode_read_background">@color/status_read</color>
+    <color name="mode_write_background">@color/status_write</color>
+    <color name="mode_read_text">#FFFFFF</color>
+    <color name="mode_write_text">#1F2937</color>
+
+    <!-- Outline & Dividers -->
+    <color name="outline">#E5E7EB</color>
+    <color name="outline_variant">#F3F4F6</color>
+    <color name="divider">#F3F4F6</color>
+
+    <!-- Scrim -->
+    <color name="scrim">#80000000</color>
+
+    <!-- Legacy colors (kept for backwards compatibility) -->
+    <color name="purple_200">#BB86FC</color>
     <color name="purple_500">#6200EE</color>
     <color name="purple_700">#3700B3</color>
     <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
 </resources>
-
-

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Light theme (default) -->
-    <style name="Theme.OpenPrintTag" parent="Theme.Material3.Light.NoActionBar">
+    <!-- Dark theme -->
+    <style name="Theme.OpenPrintTag" parent="Theme.Material3.Dark.NoActionBar">
         <!-- Primary colors -->
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryVariant">@color/primary_dark</item>
@@ -30,11 +30,11 @@
 
         <!-- Status bar -->
         <item name="android:statusBarColor">@color/surface</item>
-        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightStatusBar">false</item>
 
         <!-- Navigation bar -->
         <item name="android:navigationBarColor">@color/surface</item>
-        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowLightNavigationBar">false</item>
 
         <!-- Default component styles -->
         <item name="materialCardViewStyle">@style/Widget.OpenPrintTag.Card</item>
@@ -42,7 +42,7 @@
     </style>
 
     <!-- Bottom Sheet Dialog Theme -->
-    <style name="Theme.OpenPrintTag.BottomSheet" parent="Theme.Material3.Light.BottomSheetDialog">
+    <style name="Theme.OpenPrintTag.BottomSheet" parent="Theme.Material3.Dark.BottomSheetDialog">
         <item name="colorPrimary">@color/primary</item>
         <item name="colorSurface">@color/surface</item>
         <item name="colorOnSurface">@color/on_surface</item>

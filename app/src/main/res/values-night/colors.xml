@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Modern Minimal Color Palette - Dark Mode -->
+
+    <!-- Surface Colors -->
+    <color name="surface">#121212</color>
+    <color name="surface_elevated">#1E1E1E</color>
+    <color name="surface_container">#262626</color>
+    <color name="surface_container_high">#2D2D2D</color>
+    <color name="on_surface">#F9FAFB</color>
+    <color name="on_surface_variant">#D1D5DB</color>
+
+    <!-- Primary - Teal accent (lighter for dark mode) -->
+    <color name="primary">#2DD4BF</color>
+    <color name="primary_dark">#14B8A6</color>
+    <color name="primary_light">#5EEAD4</color>
+    <color name="on_primary">#042F2E</color>
+    <color name="primary_container">#115E59</color>
+    <color name="on_primary_container">#CCFBF1</color>
+
+    <!-- Secondary -->
+    <color name="secondary">#9CA3AF</color>
+    <color name="secondary_container">#374151</color>
+    <color name="on_secondary_container">#F3F4F6</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#F9FAFB</color>
+    <color name="text_secondary">#D1D5DB</color>
+    <color name="text_tertiary">#9CA3AF</color>
+    <color name="text_disabled">#4B5563</color>
+
+    <!-- Status Colors (adjusted for dark mode) -->
+    <color name="status_read">#34D399</color>
+    <color name="status_read_container">#064E3B</color>
+    <color name="status_write">#FBBF24</color>
+    <color name="status_write_container">#78350F</color>
+    <color name="status_error">#F87171</color>
+    <color name="status_error_container">#7F1D1D</color>
+    <color name="status_success">#34D399</color>
+
+    <!-- Mode indicator colors -->
+    <color name="mode_read_background">@color/status_read</color>
+    <color name="mode_write_background">@color/status_write</color>
+    <color name="mode_read_text">#042F2E</color>
+    <color name="mode_write_text">#1F2937</color>
+
+    <!-- Outline & Dividers -->
+    <color name="outline">#374151</color>
+    <color name="outline_variant">#1F2937</color>
+    <color name="divider">#374151</color>
+
+    <!-- Scrim -->
+    <color name="scrim">#B3000000</color>
+</resources>

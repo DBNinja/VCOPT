@@ -3,6 +3,7 @@
 package org.openprinttag.model
 
 import android.util.Log
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import org.openprinttag.util.ByteUtils
@@ -124,45 +125,126 @@ class Serializer(
     private fun encodeMain(m: OpenPrintTagModel): ByteArray {
         val data = mutableMapOf<Int, Any>()
 
-        // Use .let { ... } to only add to the map if the value is not null
+        // === UUIDs (Keys 0-3) ===
+        m.main.instance_uuid?.takeIf { it.isNotBlank() }?.let { data[0] = it }
+        m.main.package_uuid?.takeIf { it.isNotBlank() }?.let { data[1] = it }
+        m.main.material_uuid?.takeIf { it.isNotBlank() }?.let { data[2] = it }
+        m.main.brand_uuid?.takeIf { it.isNotBlank() }?.let { data[3] = it }
+
+        // === GTIN (Key 4) ===
         m.main.gtin?.toLongOrNull()?.let { data[4] = it }
-        
-        classMap[m.main.materialClass]?.let { data[8] = it }
-        
-        // Safety check: only encode type if it exists in your YAML map
-        // Only map if the string isn't the prompt
-        val typeStr = m.main.materialType
+
+        // === Brand-Specific IDs (Keys 5-7) ===
+        m.main.brand_specific_instance_id?.takeIf { it.isNotBlank() }?.let { data[5] = it }
+        m.main.brand_specific_package_id?.takeIf { it.isNotBlank() }?.let { data[6] = it }
+        m.main.brand_specific_material_id?.takeIf { it.isNotBlank() }?.let { data[7] = it }
+
+        // === Material Classification (Keys 8-11) ===
+        classMap[m.main.material_class]?.let { data[8] = it }
+
+        val typeStr = m.main.material_type
         if (typeStr != null && typeStr != "Select Material Type...") {
             typeMap[typeStr]?.let { data[9] = it }
         }
-    
-        m.main.materialName?.takeIf { it.isNotBlank() }?.let { data[10] = it }
-        m.main.brand?.takeIf { it.isNotBlank() }?.let { data[11] = it }
-        m.main.density?.let { data[29] = it }
 
-        // Use your new helper for the timestamp
-        m.main.manufacturedDate?.let { 
-            // This code only runs if manufacturedDate is NOT null
-            data[14] = getDateEpoch(m.main.manufacturedDate)!!
+        m.main.material_name?.takeIf { it.isNotBlank() }?.let { data[10] = it }
+        m.main.brand_name?.takeIf { it.isNotBlank() }?.let { data[11] = it }
+
+        // === Write Protection (Key 13) ===
+        // Note: could add writeProtectionMap lookup here if needed
+        m.main.write_protection?.toIntOrNull()?.let { data[13] = it }
+
+        // === Dates (Keys 14, 15) ===
+        m.main.manufactured_date?.let {
+            data[14] = getDateEpoch(m.main.manufactured_date)!!
+        }
+        m.main.expiration_date?.let {
+            data[15] = getDateEpoch(m.main.expiration_date)!!
         }
 
-        // Multi-select tags
-        if (m.main.materialTags.isNotEmpty()) {
-            val tagIds = m.main.materialTags.mapNotNull { tagsMap[it] }
+        // === Weights (Keys 16-18) ===
+        m.main.nominal_netto_full_weight?.let { data[16] = it }
+        m.main.actual_netto_full_weight?.let { data[17] = it }
+        m.main.empty_container_weight?.let { data[18] = it }
+
+        // === Colors (Keys 19-24) ===
+        m.main.primary_color?.takeIf { it.isNotBlank() }?.let { data[19] = it }
+        m.main.secondary_color_0?.takeIf { it.isNotBlank() }?.let { data[20] = it }
+        m.main.secondary_color_1?.takeIf { it.isNotBlank() }?.let { data[21] = it }
+        m.main.secondary_color_2?.takeIf { it.isNotBlank() }?.let { data[22] = it }
+        m.main.secondary_color_3?.takeIf { it.isNotBlank() }?.let { data[23] = it }
+        m.main.secondary_color_4?.takeIf { it.isNotBlank() }?.let { data[24] = it }
+
+        // === Optical Properties (Key 27) ===
+        m.main.transmission_distance?.let { data[27] = it }
+
+        // === Tags (Key 28) ===
+        if (m.main.tags.isNotEmpty()) {
+            val tagIds = m.main.tags.mapNotNull { tagsMap[it] }
             if (tagIds.isNotEmpty()) data[28] = tagIds
         }
 
-        // Temperatures
-        m.main.minPrintTemp?.let { data[34] = it }
-        m.main.maxPrintTemp?.let { data[35] = it }
+        // === Physical Properties (Keys 29-33) ===
+        m.main.density?.let { data[29] = it }
+        m.main.filament_diameter?.let { data[30] = it }  // KEY 30! (not deprecated key 12)
+        m.main.shore_hardness_a?.let { data[31] = it }
+        m.main.shore_hardness_d?.let { data[32] = it }
+        m.main.min_nozzle_diameter?.let { data[33] = it }
+
+        // === Temperatures (Keys 34-41) ===
+        m.main.min_print_temperature?.let { data[34] = it }
+        m.main.max_print_temperature?.let { data[35] = it }
+        m.main.preheat_temperature?.let { data[36] = it }
+        m.main.min_bed_temperature?.let { data[37] = it }
+        m.main.max_bed_temperature?.let { data[38] = it }
+        m.main.min_chamber_temperature?.let { data[39] = it }
+        m.main.max_chamber_temperature?.let { data[40] = it }
+        m.main.chamber_temperature?.let { data[41] = it }
+
+        // === Container Dimensions (Keys 42-45) ===
+        m.main.container_width?.let { data[42] = it }
+        m.main.container_outer_diameter?.let { data[43] = it }
+        m.main.container_inner_diameter?.let { data[44] = it }
+        m.main.container_hole_diameter?.let { data[45] = it }
+
+        // === SLA-Specific Fields (Keys 46-51) ===
+        m.main.viscosity_18c?.let { data[46] = it }
+        m.main.viscosity_25c?.let { data[47] = it }
+        m.main.viscosity_40c?.let { data[48] = it }
+        m.main.viscosity_60c?.let { data[49] = it }
+        m.main.container_volumetric_capacity?.let { data[50] = it }
+        m.main.cure_wavelength?.let { data[51] = it }
+
+        // === Material Abbreviation (Key 52) ===
+        m.main.material_abbreviation?.takeIf { it.isNotBlank() }?.let { data[52] = it }
+
+        // === Filament Length (Keys 53-54) ===
+        m.main.nominal_full_length?.let { data[53] = it }
+        m.main.actual_full_length?.let { data[54] = it }
+
+        // === Country of Origin (Key 55) ===
+        m.main.country_of_origin?.takeIf { it.isNotBlank() }?.let { data[55] = it }
+
+        // === Certifications (Key 56) ===
+        if (m.main.certifications.isNotEmpty()) {
+            val certIds = m.main.certifications.mapNotNull { certsMap[it] }
+            if (certIds.isNotEmpty()) data[56] = certIds
+        }
 
         return mapper.writeValueAsBytes(data)
     }
 
     private fun encodeAux(m: OpenPrintTagModel): ByteArray {
         val data = mutableMapOf<Int, Any>()
-        // If your aux_fields.yaml had defined keys for URLs, they would go here.
-        // For now, we follow the structure of providing a CBOR map.
+
+        // === Aux Region Fields (Keys 0-3) ===
+        m.aux?.consumed_weight?.let { data[0] = it }
+        m.aux?.workgroup?.takeIf { it.isNotBlank() }?.let { data[1] = it }
+        m.aux?.general_purpose_range_user?.takeIf { it.isNotBlank() }?.let { data[2] = it }
+        m.aux?.last_stir_time?.let {
+            data[3] = getDateEpoch(it)!!
+        }
+
         return if (data.isEmpty()) ByteArray(0) else mapper.writeValueAsBytes(data)
     }
 
@@ -259,30 +341,95 @@ class Serializer(
         return prefix + uriData
     }
 
+    /**
+     * Decode CBOR payload into model (used internally by parseNextNdefRecord)
+     */
+    private fun decodeCbor(payload: ByteArray) {
+        val model = OpenPrintTagModel()
+        decodeRegions(payload, model)
+        Log.d("Serializer", "Decoded CBOR: brand=${model.main.brand_name}, type=${model.main.material_type}")
+    }
+
+    /**
+     * Main deserialization entry point - parses raw tag data into a model
+     */
+    fun deserialize(data: ByteArray): OpenPrintTagModel? {
+        return try {
+            val model = OpenPrintTagModel()
+            // Skip NFC header bytes and find CBOR payload
+            val cborStart = findCborPayloadStart(data)
+            if (cborStart >= 0 && cborStart < data.size) {
+                val payload = data.copyOfRange(cborStart, data.size - 1) // Exclude terminator
+                decodeRegions(payload, model)
+            }
+            model
+        } catch (e: Exception) {
+            Log.e("Serializer", "Deserialize failed: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Find the start of CBOR payload by skipping NFC/NDEF headers
+     */
+    private fun findCborPayloadStart(data: ByteArray): Int {
+        if (data.size < 8) return -1
+
+        // Find NDEF message start (0x03) after NFC header
+        for (i in 4 until minOf(data.size, 20)) {
+            if (data[i] == 0x03.toByte()) {
+                // Determine NDEF message length field size
+                val lengthByte = data.getOrNull(i + 1)?.toInt()?.and(0xFF) ?: return -1
+                val recordStart = if (lengthByte == 0xFF) i + 4 else i + 2
+
+                if (recordStart >= data.size) return -1
+
+                // Parse NDEF record header
+                val recordHeader = data.getOrNull(recordStart)?.toInt()?.and(0xFF) ?: return -1
+                val isShortRecord = (recordHeader and 0x10) != 0
+
+                val typeLength = data.getOrNull(recordStart + 1)?.toInt()?.and(0xFF) ?: return -1
+
+                // Payload length: 1 byte if SR=1, 4 bytes if SR=0
+                val payloadLengthSize = if (isShortRecord) 1 else 4
+
+                // CBOR payload starts after: record header (1) + type length (1) + payload length (1 or 4) + type string
+                return recordStart + 1 + 1 + payloadLengthSize + typeLength
+            }
+        }
+        return -1
+    }
+
     
 
     fun decodeRegions(payload: ByteArray, model: OpenPrintTagModel) {
         val factory = CBORFactory()
         val parser = factory.createParser(payload)
-        
+
         try {
             // 1. Read the first CBOR Object
-            // This is either the Meta Region OR the Main Region
-            val firstNode = mapper.readTree(parser) ?: return
+            var firstNode: JsonNode = mapper.readTree(parser) ?: return
+
+            // Check if this first node is a VERSION MARKER (small map with only key 2)
+            // Format: {2: version_number} - skip it and read the next object
+            if (isVersionMarker(firstNode)) {
+                Log.d("Serializer", "Skipping version marker: ${firstNode}")
+                firstNode = mapper.readTree(parser) ?: return
+            }
 
             // Check if this first node is the META region
             // Meta region typically uses keys 0-3 for offsets/sizes
             // Main region uses keys 0-5+ for UUIDs, GTIN, etc.
             if (isMetaRegion(firstNode)) {
-                val mainOffset = firstNode.get(0)?.asInt() ?: 0
-                val mainSize = firstNode.get(1)?.asInt() ?: 0
-                val auxOffset = firstNode.get(2)?.asInt() ?: 0
-                val auxSize = firstNode.get(3)?.asInt() ?: 0
+                val mainOffset = firstNode.path(0).asInt(0)
+                val mainSize = firstNode.path(1).asInt(0)
+                val auxOffset = firstNode.path(2).asInt(0)
+                val auxSize = firstNode.path(3).asInt(0)
 
                 // Meta-Guided Slice
                 if (mainSize > 0) {
                     val mainBytes = payload.copyOfRange(mainOffset, mainOffset + mainSize)
-                    model.main = decodeMainRegion(mainBytes)
+                    model.main = decodeMainRegion(mainBytes) ?: MainRegion()
                 }
                 if (auxSize > 0) {
                     val auxBytes = payload.copyOfRange(auxOffset, auxOffset + auxSize)
@@ -290,12 +437,12 @@ class Serializer(
                 }
             } else {
                 // 2. Meta is OMITTED - First node is actually the Main Region
-                model.main = decodeMainRegion(firstNode)
-                
+                model.main = decodeMainRegionFromNode(firstNode)
+
                 // Try to read a second object (which would be the Aux Region)
-                val secondNode = mapper.readTree(parser)
+                val secondNode: JsonNode? = mapper.readTree(parser)
                 if (secondNode != null) {
-                    model.aux = decodeAuxRegion(secondNode)
+                    model.aux = decodeAuxRegionFromNode(secondNode)
                 }
             }
         } catch (e: Exception) {
@@ -303,6 +450,16 @@ class Serializer(
         } finally {
             parser.close()
         }
+    }
+
+    /**
+     * Check if a CBOR map is a version marker (format: {2: version_number})
+     */
+    private fun isVersionMarker(node: JsonNode): Boolean {
+        if (!node.isObject) return false
+        val fields = node.fieldNames().asSequence().toList()
+        // Version marker has exactly one field with key "2"
+        return fields.size == 1 && fields[0] == "2" && node.get("2")?.isInt == true
     }
 
     /**
@@ -314,54 +471,212 @@ class Serializer(
         // In Main, key 0 is instance_uuid (usually a 16-byte binary).
         // If key 0 is a small integer, it's likely Meta.
         val key0 = node.get(0)
-        return key0 != null && key0.isInt && key0.asInt() < 1000 
+        return key0 != null && key0.isInt && key0.asInt() < 1000
     }
 
-    /*
-    fun decodeMainRegion(payload: ByteArray): OpenPrintTagModel? {
-        return try {
-            // 1. Define a non-strict CBOR instance to ignore keys not in the model
-            //val cbor = com.android.identity.cbor.Cbor.decode(payload)
-            @OptIn(ExperimentalSerializationApi::class)
-            val cbor = Cbor {
-                ignoreUnknownKeys = true
-                encodeDefaults = false
-            }
+    /**
+     * Decode MainRegion directly from a Jackson JsonNode (more lenient with types)
+     * Supports all fields from OpenPrintTag spec
+     */
+    private fun decodeMainRegionFromNode(node: JsonNode): MainRegion {
+        val main = MainRegion()
 
-            // 2. Decode the raw bytes into the model using the @SerialName mapping
-            var model: OpenPrintTagModel.main = cbor.decodeFromByteArray<OpenPrintTagModel>(payload)
-
-            // 3. Post-process Enum values (Converting IDs back to human-readable strings)
-            // Note: This assumes your model stores the string representation 
-            // while the CBOR uses the Integer 'key' from your YAMLs.
-            
-            model.apply {
-                // Reverse lookup for Material Type
-                // typeMap is Map<String, Int>, we need the key for the value
-                main.materialType = typeMap.entries.find { it.value.toString() == main.materialType }?.key ?: main.materialType
-                
-                // Reverse lookup for Material Class
-                main.materialClass = classMap.entries.find { it.value.toString() == main.materialClass }?.key ?: main.materialClass
-                
-                // Handle multi-select tags
-                main.materialTags = tagsMap.map { tagId ->
-                    //(tagsMap.entries.find { it.value.toString() == tagId }?.key as? String) ?: tagId.toString()
-                    val foundKey = tagsMap.entries.find { it.value.toString() == tagId.toString() }?.key
-                    foundKey?.toString() ?: tagId.toString()
-                    //tagsMap.entries.find { it.value.toString() == tagId }?.key ?: tagId
-                }
+        // Helper to get string from int, string, or bytes
+        fun JsonNode?.asFlexibleString(): String? = when {
+            this == null || this.isNull -> null
+            this.isTextual -> this.asText()
+            this.isNumber -> this.asText()
+            this.isBinary -> this.binaryValue()?.let { bytes ->
+                bytes.joinToString("") { "%02X".format(it) }
             }
-            
-            
-        } catch (e: Exception) {
-            Log.e("Serializer", "Failed to decode CBOR: ${e.message}")
-            null
+            else -> this.asText()
         }
+
+        // Helper to get int
+        fun JsonNode?.asFlexibleInt(): Int? = when {
+            this == null || this.isNull -> null
+            this.isNumber -> this.asInt()
+            this.isTextual -> this.asText().toIntOrNull()
+            else -> null
+        }
+
+        // Helper to get float
+        fun JsonNode?.asFlexibleFloat(): Float? = when {
+            this == null || this.isNull -> null
+            this.isNumber -> this.floatValue()
+            this.isTextual -> this.asText().toFloatOrNull()
+            else -> null
+        }
+
+        // === UUIDs (Keys 0-3) - stored as 16-byte binary ===
+        main.instance_uuid = node.get("0").asFlexibleString()
+        main.package_uuid = node.get("1").asFlexibleString()
+        main.material_uuid = node.get("2").asFlexibleString()
+        main.brand_uuid = node.get("3").asFlexibleString()
+
+        // === GTIN (Key 4) ===
+        main.gtin = node.get("4").asFlexibleString()
+
+        // === Brand-Specific IDs (Keys 5-7) ===
+        main.brand_specific_instance_id = node.get("5").asFlexibleString()
+        main.brand_specific_package_id = node.get("6").asFlexibleString()
+        main.brand_specific_material_id = node.get("7").asFlexibleString()
+
+        // === Material Classification (Keys 8-11) ===
+        main.material_class = node.get("8").asFlexibleString() ?: "FFF"
+        main.material_type = node.get("9").asFlexibleString()
+        main.material_name = node.get("10").asFlexibleString()
+        main.brand_name = node.get("11").asFlexibleString()
+
+        // === Write Protection (Key 13) - enum ===
+        main.write_protection = node.get("13").asFlexibleString()
+
+        // === Dates (Keys 14, 15) - epoch seconds ===
+        node.get("14")?.let { dateNode ->
+            if (dateNode.isNumber) {
+                val epochSeconds = dateNode.asLong()
+                main.manufactured_date = java.time.LocalDate.ofEpochDay(epochSeconds / 86400)
+            }
+        }
+        node.get("15")?.let { dateNode ->
+            if (dateNode.isNumber) {
+                val epochSeconds = dateNode.asLong()
+                main.expiration_date = java.time.LocalDate.ofEpochDay(epochSeconds / 86400)
+            }
+        }
+
+        // === Weights (Keys 16-18) - Float per spec ===
+        main.nominal_netto_full_weight = node.get("16").asFlexibleFloat()
+        main.actual_netto_full_weight = node.get("17").asFlexibleFloat()
+        main.empty_container_weight = node.get("18").asFlexibleFloat()
+
+        // === Colors (Keys 19-24) - might be bytes or strings ===
+        main.primary_color = node.get("19").asFlexibleString()
+        main.secondary_color_0 = node.get("20").asFlexibleString()
+        main.secondary_color_1 = node.get("21").asFlexibleString()
+        main.secondary_color_2 = node.get("22").asFlexibleString()
+        main.secondary_color_3 = node.get("23").asFlexibleString()
+        main.secondary_color_4 = node.get("24").asFlexibleString()
+
+        // === Optical Properties (Key 27) ===
+        main.transmission_distance = node.get("27").asFlexibleFloat()
+
+        // === Tags & Certifications (Keys 28, 56) - arrays ===
+        node.get("28")?.let { tagsNode ->
+            if (tagsNode.isArray) {
+                main.tags = tagsNode.mapNotNull { it.asFlexibleString() }
+            }
+        }
+        node.get("56")?.let { certsNode ->
+            if (certsNode.isArray) {
+                main.certifications = certsNode.mapNotNull { it.asFlexibleString() }
+            }
+        }
+
+        // === Physical Properties (Keys 29-33) ===
+        main.density = node.get("29").asFlexibleFloat()
+        main.filament_diameter = node.get("30").asFlexibleFloat()  // KEY 30! (not deprecated key 12)
+        main.shore_hardness_a = node.get("31").asFlexibleInt()
+        main.shore_hardness_d = node.get("32").asFlexibleInt()
+        main.min_nozzle_diameter = node.get("33").asFlexibleFloat()
+
+        // === Temperatures (Keys 34-41) ===
+        main.min_print_temperature = node.get("34").asFlexibleInt()
+        main.max_print_temperature = node.get("35").asFlexibleInt()
+        main.preheat_temperature = node.get("36").asFlexibleInt()
+        main.min_bed_temperature = node.get("37").asFlexibleInt()
+        main.max_bed_temperature = node.get("38").asFlexibleInt()
+        main.min_chamber_temperature = node.get("39").asFlexibleInt()
+        main.max_chamber_temperature = node.get("40").asFlexibleInt()
+        main.chamber_temperature = node.get("41").asFlexibleInt()
+
+        // === Container Dimensions (Keys 42-45) - FFF spool ===
+        main.container_width = node.get("42").asFlexibleInt()
+        main.container_outer_diameter = node.get("43").asFlexibleInt()
+        main.container_inner_diameter = node.get("44").asFlexibleInt()
+        main.container_hole_diameter = node.get("45").asFlexibleInt()
+
+        // === SLA-Specific Fields (Keys 46-51) ===
+        main.viscosity_18c = node.get("46").asFlexibleFloat()
+        main.viscosity_25c = node.get("47").asFlexibleFloat()
+        main.viscosity_40c = node.get("48").asFlexibleFloat()
+        main.viscosity_60c = node.get("49").asFlexibleFloat()
+        main.container_volumetric_capacity = node.get("50").asFlexibleFloat()
+        main.cure_wavelength = node.get("51").asFlexibleInt()
+
+        // === Material Abbreviation (Key 52) ===
+        main.material_abbreviation = node.get("52").asFlexibleString()
+
+        // === Filament Length (Keys 53-54) ===
+        main.nominal_full_length = node.get("53").asFlexibleFloat()
+        main.actual_full_length = node.get("54").asFlexibleFloat()
+
+        // === Country of Origin (Key 55) ===
+        main.country_of_origin = node.get("55").asFlexibleString()
+
+        // === Post-process enum values (reverse lookup) ===
+        main.material_type = typeMap.entries.find {
+            it.value.toString() == main.material_type
+        }?.key ?: main.material_type
+
+        main.material_class = classMap.entries.find {
+            it.value.toString() == main.material_class
+        }?.key ?: main.material_class
+
+        main.tags = main.tags.map { tagId ->
+            tagsMap.entries.find { it.value.toString() == tagId }?.key ?: tagId
+        }
+
+        main.certifications = main.certifications.map { certId ->
+            certsMap.entries.find { it.value.toString() == certId }?.key ?: certId
+        }
+
+        return main
     }
-    */
+
+    /**
+     * Decode AuxRegion directly from a Jackson JsonNode
+     * Supports all fields from OpenPrintTag spec
+     */
+    private fun decodeAuxRegionFromNode(node: JsonNode): AuxRegion {
+        val aux = AuxRegion()
+
+        // Helper functions (same as in decodeMainRegionFromNode)
+        fun JsonNode?.asFlexibleString(): String? = when {
+            this == null || this.isNull -> null
+            this.isTextual -> this.asText()
+            this.isNumber -> this.asText()
+            this.isBinary -> this.binaryValue()?.let { bytes ->
+                bytes.joinToString("") { "%02X".format(it) }
+            }
+            else -> this.asText()
+        }
+
+        fun JsonNode?.asFlexibleFloat(): Float? = when {
+            this == null || this.isNull -> null
+            this.isNumber -> this.floatValue()
+            this.isTextual -> this.asText().toFloatOrNull()
+            else -> null
+        }
+
+        // === Aux Region Fields (Keys 0-3) ===
+        aux.consumed_weight = node.get("0").asFlexibleFloat()
+        aux.workgroup = node.get("1").asFlexibleString()
+        aux.general_purpose_range_user = node.get("2").asFlexibleString()
+
+        // last_stir_time (key 3) - epoch seconds
+        node.get("3")?.let { dateNode ->
+            if (dateNode.isNumber) {
+                val epochSeconds = dateNode.asLong()
+                aux.last_stir_time = java.time.LocalDate.ofEpochDay(epochSeconds / 86400)
+            }
+        }
+
+        return aux
+    }
 
     @OptIn(ExperimentalSerializationApi::class)
-    fun decodeMainRegion(payload: ByteArray): OpenPrintTagModel.MainRegion? {
+    fun decodeMainRegion(payload: ByteArray): MainRegion? {
         return try {
             // 1. Setup CBOR decoder
             val cbor = Cbor {
@@ -372,33 +687,33 @@ class Serializer(
             // 2. Decode bytes into the MainRegion data class
             // Note: If your model properties are String but the tag has Int, 
             // this might need a custom serializer or use Jackson/Manual Map.
-            val mainRegion = cbor.decodeFromByteArray<OpenPrintTagModel.MainRegion>(payload)
+            val mainRegion = cbor.decodeFromByteArray<MainRegion>(payload)
 
             // 3. Post-process Enum values (Reverse Lookup)
             mainRegion.apply {
                 // Convert Material Type: "0" (as string from CBOR) -> "PLA"
-                materialType = typeMap.entries.find { 
-                    it.value.toString() == materialType 
-                }?.key ?: materialType
+                material_type = typeMap.entries.find {
+                    it.value.toString() == material_type
+                }?.key ?: material_type
 
                 // Convert Material Class: "0" -> "FFF"
-                materialClass = classMap.entries.find { 
-                    it.value.toString() == materialClass 
-                }?.key ?: materialClass
+                material_class = classMap.entries.find {
+                    it.value.toString() == material_class
+                }?.key ?: material_class
 
                 // 4. Corrected Tags Mapping
                 // We map the LIST of tags from the model, not the dictionary.
-                materialTags = materialTags.map { tagId ->
+                tags = tags.map { tagId ->
                     // Look up the tagId (e.g., "52") in your YAML-loaded map
-                    tagsMap.entries.find { 
-                        it.value.toString() == tagId 
+                    tagsMap.entries.find {
+                        it.value.toString() == tagId
                     }?.key ?: tagId
                 }
-                
+
                 // Do the same for certifications if applicable
                 certifications = certifications.map { certId ->
-                    certsMap.entries.find { 
-                        it.value.toString() == certId 
+                    certsMap.entries.find {
+                        it.value.toString() == certId
                     }?.key ?: certId
                 }
             }
@@ -411,7 +726,7 @@ class Serializer(
     }
 
     @OptIn(ExperimentalSerializationApi::class)
-    fun decodeAuxRegion(payload: ByteArray): OpenPrintTagModel.AuxRegion? {
+    fun decodeAuxRegion(payload: ByteArray): AuxRegion? {
         return try {
             // 1. Setup the same CBOR configuration used for the Main region
             val cbor = Cbor {
@@ -421,7 +736,7 @@ class Serializer(
 
             // 2. Decode the sliced bytes directly into the AuxRegion data class
             // This will map Key "0" to consumedWeight and Key "1" to workgroup
-            val auxRegion = cbor.decodeFromByteArray<OpenPrintTagModel.AuxRegion>(payload)
+            val auxRegion = cbor.decodeFromByteArray<AuxRegion>(payload)
 
             // 3. Post-processing (if needed)
             // If you add fields in the future that use enums (like a 'status' field),
