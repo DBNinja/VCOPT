@@ -19,10 +19,24 @@ class NfcHelper(private val tag: Tag) {
     }
 
     fun readFullTag(): ByteArray {
-        return when (detectTech()) {
+        val raw = when (detectTech()) {
             Tech.NfcA -> readNfcAFull()
             Tech.NfcV -> readNfcVFull()
             else -> throw IOException("Unsupported tag tech")
+        }
+        return trimAtNdefTerminator(raw)
+    }
+
+    /**
+     * Trim data at the NDEF terminator TLV (0xFE).
+     * Everything after the terminator is padding/garbage.
+     */
+    private fun trimAtNdefTerminator(data: ByteArray): ByteArray {
+        val terminatorIndex = data.indexOf(0xFE.toByte())
+        return if (terminatorIndex >= 0) {
+            data.copyOfRange(0, terminatorIndex + 1)
+        } else {
+            data
         }
     }
 
