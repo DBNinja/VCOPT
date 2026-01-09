@@ -5,3 +5,7 @@ local.properties
 *.iml
 .DS_Store
 /app/src/main/assets/*.bin
+
+# Release signing
+*.jks
+*.keystore
