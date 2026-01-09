@@ -15,6 +15,15 @@ import kotlinx.serialization.decodeFromByteArray
 import kotlinx.serialization.cbor.Cbor
 import kotlinx.serialization.ExperimentalSerializationApi
 
+/**
+ * Sealed class representing parsed NDEF record types
+ */
+private sealed class NdefRecord {
+    data class CborRecord(val payload: ByteArray) : NdefRecord()
+    data class UriRecord(val url: String) : NdefRecord()
+    data class Unknown(val type: String) : NdefRecord()
+}
+
 class Serializer(
     private val classMap: Map<String, Int>,
     private val typeMap: Map<String, Int>,
@@ -248,43 +257,19 @@ class Serializer(
         return if (data.isEmpty()) ByteArray(0) else mapper.writeValueAsBytes(data)
     }
 
-    fun deserializeAllRecords(fileBytes: ByteArray) {
-        val buffer = ByteBuffer.wrap(fileBytes).order(ByteOrder.BIG_ENDIAN)
-
-        // --- 1. Skip NFC Magic Number (E1 40 27 01) ---
-        buffer.position(4)
-
-        // --- 2. Find the NDEF Message TLV (03) ---
-        while (buffer.hasRemaining()) {
-            val tag = buffer.get().toInt() and 0xFF
-            if (tag == 0x03) {
-                // Found NDEF Message. Get its length.
-                val lengthByte = buffer.get().toInt() and 0xFF
-                val ndefMessageLength = if (lengthByte == 0xFF) buffer.short.toInt() else lengthByte
-                
-                // Limit the buffer to ONLY the NDEF Message content
-                val endOfMessage = buffer.position() + ndefMessageLength
-                
-                // --- 3. Loop through Records inside the Message ---
-                while (buffer.position() < endOfMessage) {
-                    parseNextNdefRecord(buffer)
-                }
-            } else if (tag == 0xFE) {
-                break // End of tag
-            }
-        }
-    }
-
-    private fun parseNextNdefRecord(buffer: ByteBuffer) {
+    /**
+     * Parse a single NDEF record from the buffer and return structured data
+     */
+    private fun parseNextNdefRecord(buffer: ByteBuffer): NdefRecord {
         val header = buffer.get().toInt()
-        
+
         // NDEF Header flags
         val tnf = header and 0x07 // Type Name Format
         val isShortRecord = (header and 0x10) != 0 // SR flag
-        
+
         // Type Length
         val typeLength = buffer.get().toInt() and 0xFF
-        
+
         // Payload Length (1 byte if SR=1, 4 bytes if SR=0)
         val payloadLength = if (isShortRecord) {
             buffer.get().toInt() and 0xFF
@@ -307,18 +292,16 @@ class Serializer(
         val payload = ByteArray(payloadLength)
         buffer.get(payload)
 
-        // --- 4. Route based on Type ---
-        when {
+        // Route based on Type and return structured record
+        return when {
             typeString == "application/vnd.openprinttag" -> {
-                println("Found CBOR Record: ${payload.toHexString()}")
-                decodeCbor(payload)
+                NdefRecord.CborRecord(payload)
             }
             tnf == 0x01 && typeString == "U" -> {
-                val url = decodeUriRecord(payload)
-                println("Found URL: $url")
+                NdefRecord.UriRecord(decodeUriRecord(payload))
             }
             else -> {
-                println("Found Unknown Record Type: $typeString")
+                NdefRecord.Unknown(typeString)
             }
         }
     }
@@ -342,25 +325,47 @@ class Serializer(
     }
 
     /**
-     * Decode CBOR payload into model (used internally by parseNextNdefRecord)
-     */
-    private fun decodeCbor(payload: ByteArray) {
-        val model = OpenPrintTagModel()
-        decodeRegions(payload, model)
-        Log.d("Serializer", "Decoded CBOR: brand=${model.main.brand_name}, type=${model.main.material_type}")
-    }
-
-    /**
      * Main deserialization entry point - parses raw tag data into a model
+     * Handles both single-record and dual-record (CBOR + URL) tags
      */
     fun deserialize(data: ByteArray): OpenPrintTagModel? {
         return try {
             val model = OpenPrintTagModel()
-            // Skip NFC header bytes and find CBOR payload
-            val cborStart = findCborPayloadStart(data)
-            if (cborStart >= 0 && cborStart < data.size) {
-                val payload = data.copyOfRange(cborStart, data.size - 1) // Exclude terminator
-                decodeRegions(payload, model)
+            val buffer = ByteBuffer.wrap(data).order(ByteOrder.BIG_ENDIAN)
+
+            // Skip NFC Magic Number (E1 40 27 01) if present
+            if (data.size < 8) return model
+            buffer.position(4)
+
+            // Find the NDEF Message TLV (0x03)
+            while (buffer.hasRemaining()) {
+                val tag = buffer.get().toInt() and 0xFF
+                if (tag == 0x03) {
+                    // Found NDEF Message. Get its length.
+                    val lengthByte = buffer.get().toInt() and 0xFF
+                    val ndefMessageLength = if (lengthByte == 0xFF) buffer.short.toInt() and 0xFFFF else lengthByte
+
+                    // Limit parsing to ONLY the NDEF Message content
+                    val endOfMessage = buffer.position() + ndefMessageLength
+
+                    // Loop through Records inside the Message
+                    while (buffer.position() < endOfMessage && buffer.hasRemaining()) {
+                        when (val record = parseNextNdefRecord(buffer)) {
+                            is NdefRecord.CborRecord -> {
+                                decodeRegions(record.payload, model)
+                            }
+                            is NdefRecord.UriRecord -> {
+                                model.urlRecord = UrlRegion(url = record.url, includeInTag = true)
+                            }
+                            is NdefRecord.Unknown -> {
+                                Log.d("Serializer", "Skipping unknown record type: ${record.type}")
+                            }
+                        }
+                    }
+                    break // Done parsing NDEF message
+                } else if (tag == 0xFE) {
+                    break // End of tag
+                }
             }
             model
         } catch (e: Exception) {
@@ -368,39 +373,6 @@ class Serializer(
             null
         }
     }
-
-    /**
-     * Find the start of CBOR payload by skipping NFC/NDEF headers
-     */
-    private fun findCborPayloadStart(data: ByteArray): Int {
-        if (data.size < 8) return -1
-
-        // Find NDEF message start (0x03) after NFC header
-        for (i in 4 until minOf(data.size, 20)) {
-            if (data[i] == 0x03.toByte()) {
-                // Determine NDEF message length field size
-                val lengthByte = data.getOrNull(i + 1)?.toInt()?.and(0xFF) ?: return -1
-                val recordStart = if (lengthByte == 0xFF) i + 4 else i + 2
-
-                if (recordStart >= data.size) return -1
-
-                // Parse NDEF record header
-                val recordHeader = data.getOrNull(recordStart)?.toInt()?.and(0xFF) ?: return -1
-                val isShortRecord = (recordHeader and 0x10) != 0
-
-                val typeLength = data.getOrNull(recordStart + 1)?.toInt()?.and(0xFF) ?: return -1
-
-                // Payload length: 1 byte if SR=1, 4 bytes if SR=0
-                val payloadLengthSize = if (isShortRecord) 1 else 4
-
-                // CBOR payload starts after: record header (1) + type length (1) + payload length (1 or 4) + type string
-                return recordStart + 1 + 1 + payloadLengthSize + typeLength
-            }
-        }
-        return -1
-    }
-
-    
 
     fun decodeRegions(payload: ByteArray, model: OpenPrintTagModel) {
         val factory = CBORFactory()
