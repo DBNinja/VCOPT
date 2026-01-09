@@ -26,5 +26,6 @@
                        android:resource="@xml/nfc_tech_filter"/>
         </activity>
         <activity android:name="org.openprinttag.GeneratorActivity" android:exported="false"/>
+        <activity android:name="org.openprinttag.CreditsActivity" android:exported="false"/>
     </application>
 </manifest>

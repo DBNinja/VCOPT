@@ -20,4 +20,9 @@
         android:title="@string/btn_save_bin"
         app:showAsAction="never" />
 
+    <item
+        android:id="@+id/action_credits"
+        android:title="@string/menu_credits"
+        app:showAsAction="never" />
+
 </menu>

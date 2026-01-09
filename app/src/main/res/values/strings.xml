@@ -5,6 +5,7 @@
 
     <!-- Activity titles -->
     <string name="title_generator">Tag Generator</string>
+    <string name="title_credits">Credits</string>
 
     <!-- MainActivity buttons -->
     <string name="btn_open_generator">Open generator</string>
@@ -143,4 +144,15 @@
     <!-- Error messages -->
     <string name="error_nfc_operation_failed">NFC operation failed: %1$s</string>
     <string name="error_nfc_not_available">NFC is not available on this device</string>
+    <string name="error_loading_notices">Failed to load notices</string>
+
+    <!-- Credits Activity -->
+    <string name="section_contributors">CONTRIBUTORS</string>
+    <string name="section_licenses">THIRD-PARTY LICENSES</string>
+    <string name="contributor_dbninja">DBNinja</string>
+    <string name="contributor_underflow">Und3rf10w</string>
+    <string name="github_dbninja">https://github.com/DBNinja</string>
+    <string name="github_underflow">https://github.com/Und3rf10w</string>
+    <string name="view_on_github">View on GitHub</string>
+    <string name="menu_credits">Credits</string>
 </resources>

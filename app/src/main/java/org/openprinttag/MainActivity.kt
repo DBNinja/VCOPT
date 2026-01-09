@@ -20,6 +20,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -77,7 +78,7 @@ class MainActivity : AppCompatActivity() {
             if (data != null) {
                 cachedTagData = data
                 binding.tvStatus.text = getString(R.string.status_new_bin_cached)
-
+                checkSize(cachedTagData?.size  )
                 // Try to decode and display the generated data
                 lifecycleScope.launch(Dispatchers.IO) {
                     ensureMapsLoaded()
@@ -89,6 +90,22 @@ class MainActivity : AppCompatActivity() {
                         Toast.makeText(this@MainActivity, R.string.toast_data_ready_to_write, Toast.LENGTH_SHORT).show()
                     }
                 }
+            }
+        }
+    }
+
+    companion object {
+        const val SPEC_SIZE_LIMIT = 316
+        const val HARD_SIZE_LIMIT = 504
+    }
+
+    fun checkSize(binSize: Int?)
+    {
+        binSize?.let {
+
+            if (binSize > SPEC_SIZE_LIMIT) {
+                // Show a non-blocking warning (e.g., a Snackbar or Dialog)
+                Toast.makeText(this,"Warning: File size (${binSize} bytes) exceeds the OpenPrintTag spec of $SPEC_SIZE_LIMIT bytes.",Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -176,6 +193,10 @@ class MainActivity : AppCompatActivity() {
                 saveBinFile()
                 true
             }
+            R.id.action_credits -> {
+                startActivity(Intent(this, CreditsActivity::class.java))
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -249,6 +270,7 @@ class MainActivity : AppCompatActivity() {
                         displayTagData(decodedModel)
                         Toast.makeText(this@MainActivity, R.string.toast_file_loaded, Toast.LENGTH_SHORT).show()
                     }
+                    checkSize(cachedTagData?.size)
                 }
             } catch (e: Exception) {
                 Log.e("NFC_APP", "Failed to load file", e)
@@ -280,6 +302,7 @@ class MainActivity : AppCompatActivity() {
                         cachedTagData = data
                         binding.tvStatus.text = getString(R.string.status_tag_read_success, data.size)
                         displayTagData(decodedModel)
+                        checkSize(cachedTagData?.size)
                     } else {
                         binding.tvStatus.text = getString(R.string.status_read_failed)
                     }
