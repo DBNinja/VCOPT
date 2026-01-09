@@ -119,6 +119,7 @@
     <string name="hint_brand_package_id">Brand Package ID</string>
     <string name="hint_brand_material_id">Brand Material ID</string>
     <string name="hint_write_protection">Write Protection</string>
+    <string name="hint_url">URL (optional)</string>
 
     <!-- GeneratorActivity buttons -->
     <string name="btn_generate_bin">Generate .bin</string>

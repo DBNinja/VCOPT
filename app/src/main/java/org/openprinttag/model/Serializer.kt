@@ -43,37 +43,104 @@ class Serializer(
 
     private val mapper = ObjectMapper(CBORFactory())
 
-    fun serialize(model: OpenPrintTagModel): ByteArray {
-        // 1. Encode regions as CBOR maps
+    companion object {
+        // Default size reserved for aux region when generating new tags
+        const val DEFAULT_AUX_RESERVE_SIZE = 32
+    }
+
+    fun serialize(model: OpenPrintTagModel, reserveAuxSpace: Boolean = false): ByteArray {
+        // 1. Encode main and aux regions as CBOR maps
         val mainRegion = encodeMain(model)
         val auxRegion = encodeAux(model)
-        val metaRegion = ByteArray(0) // Reserved for future use
 
-        //
+        // 2. Determine if we need a meta region (to specify aux offset)
+        // We create a meta region if:
+        // - We're reserving space for aux, OR
+        // - We have actual aux data
+        val needsMeta = reserveAuxSpace || auxRegion.isNotEmpty()
+
+        // Calculate aux region start offset (relative to CBOR payload start)
+        // Structure: [meta] + [main] + [aux or reserved space]
+        val metaRegion: ByteArray
+        val auxReservedSpace: ByteArray
+
+        if (needsMeta) {
+            // First pass: calculate meta size by encoding a placeholder
+            // Meta region format: {0: main_offset, 2: aux_offset}
+            val placeholderMeta = encodeMeta(mainOffset = 10, auxOffset = 100) // rough estimate
+            val estimatedMetaSize = placeholderMeta.size
+
+            // Calculate actual offsets
+            val mainOffset = estimatedMetaSize
+            val auxOffset = mainOffset + mainRegion.size
+
+            // Encode final meta region with correct offsets
+            metaRegion = encodeMeta(mainOffset, auxOffset)
+
+            // If meta size changed, recalculate (rare edge case)
+            val actualMainOffset = metaRegion.size
+            val actualAuxOffset = actualMainOffset + mainRegion.size
+
+            // Re-encode if offsets changed
+            val finalMeta = if (actualMainOffset != mainOffset || actualAuxOffset != auxOffset) {
+                encodeMeta(actualMainOffset, actualAuxOffset)
+            } else {
+                metaRegion
+            }
+
+            // Determine aux space
+            auxReservedSpace = if (auxRegion.isNotEmpty()) {
+                auxRegion
+            } else if (reserveAuxSpace) {
+                // Reserve space for future aux data with an empty CBOR map
+                // Don't pad with zeros as it causes parsing issues
+                mapper.writeValueAsBytes(emptyMap<Int, Any>())
+            } else {
+                ByteArray(0)
+            }
+
+            // Use final meta
+            return buildNdefMessage(finalMeta, mainRegion, auxReservedSpace)
+        } else {
+            // No meta region - just main region
+            return buildNdefMessage(ByteArray(0), mainRegion, ByteArray(0))
+        }
+    }
+
+    /**
+     * Encode meta region with main and aux offsets
+     */
+    private fun encodeMeta(mainOffset: Int, auxOffset: Int): ByteArray {
+        val data = mutableMapOf<Int, Any>()
+        data[0] = mainOffset  // main_region_offset
+        data[2] = auxOffset   // aux_region_offset
+        return mapper.writeValueAsBytes(data)
+    }
+
+    /**
+     * Build the complete NDEF message with header
+     */
+    private fun buildNdefMessage(metaRegion: ByteArray, mainRegion: ByteArray, auxRegion: ByteArray): ByteArray {
         val header = ByteBuffer.allocate(42)
         header.put(byteArrayOf(0xE1.toByte(), 0x40.toByte(), 0x27.toByte(), 0x01.toByte()))
-        //header.put("OPTG".toByteArray(StandardCharsets.US_ASCII))
         header.put(0x03.toByte()) // NDEF
-        header.put(0xFF.toByte()) // NDEF
-        //header.putShort(metaRegion.size.toShort())
-        //header.putShort(mainRegion.size.toShort())
-        
+        header.put(0xFF.toByte()) // Long length indicator
 
-        // 3. Combine parts
-        val payloadLength = metaRegion.size + mainRegion.size + auxRegion.size + (header.capacity() - 8)
-        //6 bytes are used previously, 2 bytes for the short size
+        // Calculate sizes
+        val cborSize = metaRegion.size + mainRegion.size + auxRegion.size
+        val payloadLength = cborSize + (header.capacity() - 8)
+
         header.putShort(payloadLength.toShort())
 
-        val totalSize = metaRegion.size + mainRegion.size + auxRegion.size  + header.capacity()
-        val cborSize = metaRegion.size + mainRegion.size + auxRegion.size 
         header.put(0xC2.toByte()) // NDEF Record Header. MB=1, ME=1, TNF=2 (MIME), SR=0 (Long Record).
-        header.put(0x1C.toByte()) // 28 byes for MIME length
+        header.put(0x1C.toByte()) // 28 bytes for MIME length
 
-        header.putInt(cborSize.toInt())
+        header.putInt(cborSize)
         val mimeType = "application/vnd.openprinttag"
         val mimeBytes = mimeType.toByteArray(Charsets.US_ASCII)
         header.put(mimeBytes)
 
+        val totalSize = metaRegion.size + mainRegion.size + auxRegion.size + header.capacity()
         val body = ByteBuffer.allocate(totalSize)
             .put(header.array())
             .put(metaRegion)
@@ -81,11 +148,8 @@ class Serializer(
             .put(auxRegion)
             .array()
 
-        // 4. Append CRC32 Checksum
-        //val checksum = ByteUtils.crc32(body)
         return ByteBuffer.allocate(body.size + 1)
             .put(body)
-            //.putInt(checksum)
             .put(0xFE.toByte())
             .array()
     }
@@ -484,7 +548,10 @@ class Serializer(
 
                 if (mainSize > 0 && mainOffset + mainSize <= payload.size) {
                     val mainBytes = payload.copyOfRange(mainOffset, mainOffset + mainSize)
-                    model.main = decodeMainRegion(mainBytes) ?: MainRegion()
+                    val mainNode = mapper.readTree(mainBytes)
+                    if (mainNode != null) {
+                        model.main = decodeMainRegionFromNode(mainNode)
+                    }
                 }
 
                 if (explicitAuxOffset != null) {
@@ -493,7 +560,10 @@ class Serializer(
 
                     if (auxSize > 0 && explicitAuxOffset + auxSize <= payload.size) {
                         val auxBytes = payload.copyOfRange(explicitAuxOffset, explicitAuxOffset + auxSize)
-                        model.aux = decodeAuxRegion(auxBytes)
+                        val auxNode = mapper.readTree(auxBytes)
+                        if (auxNode != null) {
+                            model.aux = decodeAuxRegionFromNode(auxNode)
+                        }
                     }
                 }
             } else {
@@ -552,10 +622,13 @@ class Serializer(
                 val mainSize = explicitMainSize
                     ?: (explicitAuxOffset?.minus(mainOffset) ?: (payload.size - mainOffset))
 
-                // Decode main region
+                // Decode main region using Jackson (consistent with non-meta path)
                 if (mainSize > 0 && mainOffset + mainSize <= payload.size) {
                     val mainBytes = payload.copyOfRange(mainOffset, mainOffset + mainSize)
-                    model.main = decodeMainRegion(mainBytes) ?: MainRegion()
+                    val mainNode = mapper.readTree(mainBytes)
+                    if (mainNode != null) {
+                        model.main = decodeMainRegionFromNode(mainNode)
+                    }
                 }
 
                 // Calculate aux region bounds (only if aux_region_offset is specified)
@@ -566,7 +639,10 @@ class Serializer(
 
                     if (auxSize > 0 && explicitAuxOffset + auxSize <= payload.size) {
                         val auxBytes = payload.copyOfRange(explicitAuxOffset, explicitAuxOffset + auxSize)
-                        model.aux = decodeAuxRegion(auxBytes)
+                        val auxNode = mapper.readTree(auxBytes)
+                        if (auxNode != null) {
+                            model.aux = decodeAuxRegionFromNode(auxNode)
+                        }
                     }
                 }
             } else {

@@ -389,4 +389,60 @@ class OpenPrintTagEncodeDecodeTest {
         }
         return ByteArray(0)
     }
+
+    // ==================== Aux Space Reservation Tests ====================
+
+    @Test
+    fun testEncode_withAuxSpaceReservation() {
+        val model = OpenPrintTagModel()
+        model.main.material_class = "FFF"
+        model.main.material_type = "PLA"
+        model.main.brand_name = "TestBrand"
+
+        // Serialize with aux space reservation
+        val binWithReserve = serializer.serialize(model, reserveAuxSpace = true)
+
+        // Serialize without aux space reservation
+        val binWithoutReserve = serializer.serialize(model, reserveAuxSpace = false)
+
+        // The one with reserve should be larger (includes meta region + reserved aux space)
+        assertTrue("Reserved version should be larger", binWithReserve.size > binWithoutReserve.size)
+
+        // Both should deserialize correctly
+        val decoded1 = serializer.deserialize(binWithReserve)
+        val decoded2 = serializer.deserialize(binWithoutReserve)
+
+        assertNotNull("decoded1 should not be null", decoded1)
+        assertNotNull("decoded2 should not be null", decoded2)
+        assertEquals("decoded1 should have PLA", "PLA", decoded1!!.main.material_type)
+        assertEquals("decoded2 should have PLA", "PLA", decoded2!!.main.material_type)
+        assertEquals("decoded1 should have brand", "TestBrand", decoded1.main.brand_name)
+        assertEquals("decoded2 should have brand", "TestBrand", decoded2.main.brand_name)
+    }
+
+    @Test
+    fun testEncode_auxSpaceReservation_roundTrip() {
+        val model = OpenPrintTagModel()
+        model.main.material_class = "FFF"
+        model.main.material_type = "PETG"
+        model.main.brand_name = "Prusament"
+        model.main.nominal_netto_full_weight = 1000f
+        model.main.min_print_temperature = 240
+        model.main.max_print_temperature = 260
+
+        // Serialize with aux space
+        val bin = serializer.serialize(model, reserveAuxSpace = true)
+
+        // Deserialize with offsets to verify aux region location
+        val result = serializer.deserializeWithOffsets(bin)
+
+        assertNotNull("Should deserialize successfully", result)
+        assertNotNull("Should have aux offset", result!!.auxByteOffset)
+        assertTrue("Aux offset should be positive", result.auxByteOffset!! > 0)
+
+        // Verify the model data is intact
+        assertEquals("PETG", result.model.main.material_type)
+        assertEquals("Prusament", result.model.main.brand_name)
+        assertEquals(240, result.model.main.min_print_temperature)
+    }
 }

@@ -92,9 +92,13 @@ class MainActivity : AppCompatActivity() {
                 lifecycleScope.launch(Dispatchers.IO) {
                     ensureMapsLoaded()
                     val serializer = Serializer(classMap, typeMap, tagsMap, certsMap)
-                    val decodedModel = serializer.deserialize(data)
+                    // Use deserializeWithOffsets to get aux region location
+                    val result = serializer.deserializeWithOffsets(data)
+                    val decodedModel = result?.model
 
                     withContext(Dispatchers.Main) {
+                        cachedModel = decodedModel
+                        cachedAuxOffset = result?.auxByteOffset
                         displayTagData(decodedModel)
                         Toast.makeText(this@MainActivity, R.string.toast_data_ready_to_write, Toast.LENGTH_SHORT).show()
                     }
@@ -353,10 +357,14 @@ class MainActivity : AppCompatActivity() {
 
                     ensureMapsLoaded()
                     val serializer = Serializer(classMap, typeMap, tagsMap, certsMap)
-                    val decodedModel = serializer.deserialize(bytes)
+                    // Use deserializeWithOffsets to get aux region location
+                    val result = serializer.deserializeWithOffsets(bytes)
+                    val decodedModel = result?.model
 
                     withContext(Dispatchers.Main) {
                         cachedTagData = bytes
+                        cachedModel = decodedModel
+                        cachedAuxOffset = result?.auxByteOffset
                         binding.progressBar.visibility = View.GONE
                         binding.tvStatus.text = getString(R.string.toast_file_loaded)
                         displayTagData(decodedModel)

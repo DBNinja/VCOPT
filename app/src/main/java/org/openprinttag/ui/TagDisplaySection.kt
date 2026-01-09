@@ -168,7 +168,7 @@ object TagDisplayBuilder {
         }
 
         // 8. Metadata
-        val metadataProps = buildMetadataProperties(main)
+        val metadataProps = buildMetadataProperties(main, model.urlRecord?.url)
         if (metadataProps.isNotEmpty()) {
             items.add(TagDisplayItem.SectionHeader("Details"))
             items.addAll(metadataProps)
@@ -290,7 +290,7 @@ object TagDisplayBuilder {
         return props
     }
 
-    private fun buildMetadataProperties(main: org.openprinttag.model.MainRegion): List<TagDisplayItem> {
+    private fun buildMetadataProperties(main: org.openprinttag.model.MainRegion, url: String?): List<TagDisplayItem> {
         val props = mutableListOf<TagDisplayItem>()
 
         // GTIN
@@ -311,6 +311,11 @@ object TagDisplayBuilder {
         // Expiration Date
         main.expiration_date?.let {
             props.add(TagDisplayItem.PropertyRow("Expires", it.toString()))
+        }
+
+        // URL
+        url?.takeIf { it.isNotBlank() }?.let {
+            props.add(TagDisplayItem.PropertyRow("URL", it))
         }
 
         return props
