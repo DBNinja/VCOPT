@@ -126,7 +126,15 @@
                     style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/button_height"
+                    android:layout_marginBottom="@dimen/spacing_sm"
                     android:text="@string/btn_save_bin" />
+
+                <Button
+                    android:id="@+id/btnEditAux"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/button_height"
+                    android:text="@string/btn_edit_aux" />
 
             </LinearLayout>
 

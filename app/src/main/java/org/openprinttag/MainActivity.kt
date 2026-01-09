@@ -27,6 +27,8 @@ import kotlinx.coroutines.withContext
 import org.openprinttag.app.R
 import org.openprinttag.app.databinding.ActivityMainBinding
 import org.openprinttag.model.OpenPrintTagModel
+import org.openprinttag.model.AuxRegion
+import org.openprinttag.model.DeserializeResult
 import org.openprinttag.model.Serializer
 import org.openprinttag.ui.TagDataAdapter
 import org.openprinttag.ui.TagDisplayBuilder
@@ -39,6 +41,13 @@ class MainActivity : AppCompatActivity() {
     private var cachedTagData: ByteArray? = null
     private var detectedTag: Tag? = null
     private var isWriteMode = false
+    private var isAuxWriteMode = false  // For aux-only writes
+    private var pendingAuxData: ByteArray? = null
+    private var pendingAuxOffset: Int = -1
+
+    // Cached deserialized model for aux editing
+    private var cachedModel: OpenPrintTagModel? = null
+    private var cachedAuxOffset: Int? = null
 
     // Tag data adapter
     private lateinit var tagDataAdapter: TagDataAdapter
@@ -88,6 +97,48 @@ class MainActivity : AppCompatActivity() {
                     withContext(Dispatchers.Main) {
                         displayTagData(decodedModel)
                         Toast.makeText(this@MainActivity, R.string.toast_data_ready_to_write, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+
+    private val auxEditorLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val data = result.data ?: return@registerForActivityResult
+
+            // Build AuxRegion from result
+            val aux = AuxRegion(
+                consumed_weight = if (data.hasExtra(AuxEditorActivity.RESULT_CONSUMED_WEIGHT))
+                    data.getFloatExtra(AuxEditorActivity.RESULT_CONSUMED_WEIGHT, 0f) else null,
+                workgroup = data.getStringExtra(AuxEditorActivity.RESULT_WORKGROUP),
+                general_purpose_range_user = data.getStringExtra(AuxEditorActivity.RESULT_USER_DATA),
+                last_stir_time = if (data.hasExtra(AuxEditorActivity.RESULT_LAST_STIR_TIME))
+                    java.time.LocalDate.ofEpochDay(data.getLongExtra(AuxEditorActivity.RESULT_LAST_STIR_TIME, 0))
+                else null
+            )
+
+            val auxOffset = data.getIntExtra(AuxEditorActivity.RESULT_AUX_OFFSET, -1)
+
+            // Encode aux region
+            lifecycleScope.launch(Dispatchers.IO) {
+                ensureMapsLoaded()
+                val serializer = Serializer(classMap, typeMap, tagsMap, certsMap)
+                val auxBytes = serializer.encodeAuxOnly(aux)
+
+                withContext(Dispatchers.Main) {
+                    if (auxOffset > 0 && auxBytes.isNotEmpty()) {
+                        // Partial write mode
+                        pendingAuxData = auxBytes
+                        pendingAuxOffset = auxOffset
+                        isAuxWriteMode = true
+                        isWriteMode = false
+                        updateModeIndicator()
+                        Toast.makeText(this@MainActivity, "Tap tag to update aux region", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this@MainActivity, R.string.toast_no_aux_offset, Toast.LENGTH_LONG).show()
                     }
                 }
             }
@@ -163,14 +214,20 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnReadTag.setOnClickListener {
             isWriteMode = false
+            isAuxWriteMode = false
             updateModeIndicator()
             Toast.makeText(this, R.string.toast_ready_to_read, Toast.LENGTH_SHORT).show()
         }
 
         binding.btnWriteTag.setOnClickListener {
             isWriteMode = true
+            isAuxWriteMode = false
             updateModeIndicator()
             Toast.makeText(this, R.string.toast_ready_to_write, Toast.LENGTH_SHORT).show()
+        }
+
+        binding.btnEditAux.setOnClickListener {
+            launchAuxEditor()
         }
     }
 
@@ -209,6 +266,31 @@ class MainActivity : AppCompatActivity() {
         generatorLauncher.launch(intent)
     }
 
+    private fun launchAuxEditor() {
+        if (cachedTagData == null) {
+            Toast.makeText(this, R.string.toast_read_tag_first, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (cachedAuxOffset == null || cachedAuxOffset!! <= 0) {
+            Toast.makeText(this, R.string.toast_no_aux_offset, Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val intent = Intent(this, AuxEditorActivity::class.java).apply {
+            // Pass existing aux data
+            cachedModel?.aux?.let { aux ->
+                aux.consumed_weight?.let { putExtra(AuxEditorActivity.EXTRA_CONSUMED_WEIGHT, it) }
+                aux.workgroup?.let { putExtra(AuxEditorActivity.EXTRA_WORKGROUP, it) }
+                aux.general_purpose_range_user?.let { putExtra(AuxEditorActivity.EXTRA_USER_DATA, it) }
+                aux.last_stir_time?.let { putExtra(AuxEditorActivity.EXTRA_LAST_STIR_TIME, it.toEpochDay()) }
+            }
+            // Pass aux offset for partial write
+            putExtra(AuxEditorActivity.EXTRA_AUX_BYTE_OFFSET, cachedAuxOffset!!)
+        }
+        auxEditorLauncher.launch(intent)
+    }
+
     private fun loadBinFile() {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
@@ -236,18 +318,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateModeIndicator() {
-        if (isWriteMode) {
-            binding.chipMode.text = "WRITE MODE"
-            binding.chipMode.chipBackgroundColor = ColorStateList.valueOf(
-                ContextCompat.getColor(this, R.color.status_write)
-            )
-            binding.chipMode.setTextColor(ContextCompat.getColor(this, R.color.mode_write_text))
-        } else {
-            binding.chipMode.text = "READ MODE"
-            binding.chipMode.chipBackgroundColor = ColorStateList.valueOf(
-                ContextCompat.getColor(this, R.color.status_read)
-            )
-            binding.chipMode.setTextColor(ContextCompat.getColor(this, R.color.mode_read_text))
+        when {
+            isAuxWriteMode -> {
+                binding.chipMode.text = "AUX WRITE"
+                binding.chipMode.chipBackgroundColor = ColorStateList.valueOf(
+                    ContextCompat.getColor(this, R.color.status_write)
+                )
+                binding.chipMode.setTextColor(ContextCompat.getColor(this, R.color.mode_write_text))
+            }
+            isWriteMode -> {
+                binding.chipMode.text = "WRITE MODE"
+                binding.chipMode.chipBackgroundColor = ColorStateList.valueOf(
+                    ContextCompat.getColor(this, R.color.status_write)
+                )
+                binding.chipMode.setTextColor(ContextCompat.getColor(this, R.color.mode_write_text))
+            }
+            else -> {
+                binding.chipMode.text = "READ MODE"
+                binding.chipMode.chipBackgroundColor = ColorStateList.valueOf(
+                    ContextCompat.getColor(this, R.color.status_read)
+                )
+                binding.chipMode.setTextColor(ContextCompat.getColor(this, R.color.mode_read_text))
+            }
         }
     }
 
@@ -290,16 +382,24 @@ class MainActivity : AppCompatActivity() {
             try {
                 val data = manager.readFullTag()
 
-                val decodedModel: OpenPrintTagModel? = if (data != null) {
+                var decodedModel: OpenPrintTagModel? = null
+                var auxOffset: Int? = null
+
+                if (data != null) {
                     ensureMapsLoaded()
                     val serializer = Serializer(classMap, typeMap, tagsMap, certsMap)
-                    serializer.deserialize(data)
-                } else null
+                    // Use deserializeWithOffsets to get aux region location
+                    val result = serializer.deserializeWithOffsets(data)
+                    decodedModel = result?.model
+                    auxOffset = result?.auxByteOffset
+                }
 
                 withContext(Dispatchers.Main) {
                     binding.progressBar.visibility = View.GONE
                     if (data != null) {
                         cachedTagData = data
+                        cachedModel = decodedModel
+                        cachedAuxOffset = auxOffset
                         binding.tvStatus.text = getString(R.string.status_tag_read_success, data.size)
                         displayTagData(decodedModel)
                         checkSize(cachedTagData?.size)
@@ -365,35 +465,77 @@ class MainActivity : AppCompatActivity() {
             tag?.let {
                 detectedTag = it
 
-                if (isWriteMode) {
-                    binding.progressBar.visibility = View.VISIBLE
-                    lifecycleScope.launch {
-                        try {
-                            val success = writeMemoryToTag(it)
-                            withContext(Dispatchers.Main) {
-                                binding.progressBar.visibility = View.GONE
-                                if (success) {
-                                    Toast.makeText(this@MainActivity, R.string.toast_write_complete, Toast.LENGTH_SHORT).show()
-                                    isWriteMode = false
-                                    updateModeIndicator()
-                                } else {
-                                    Toast.makeText(this@MainActivity, R.string.toast_write_failed, Toast.LENGTH_SHORT).show()
+                when {
+                    isAuxWriteMode -> {
+                        // Partial aux write mode
+                        binding.progressBar.visibility = View.VISIBLE
+                        lifecycleScope.launch {
+                            try {
+                                val success = writeAuxToTag(it)
+                                withContext(Dispatchers.Main) {
+                                    binding.progressBar.visibility = View.GONE
+                                    if (success) {
+                                        Toast.makeText(this@MainActivity, R.string.toast_aux_update_complete, Toast.LENGTH_SHORT).show()
+                                        isAuxWriteMode = false
+                                        pendingAuxData = null
+                                        pendingAuxOffset = -1
+                                        updateModeIndicator()
+                                        // Re-read tag to show updated data
+                                        readAndDisplayTag(it)
+                                    } else {
+                                        Toast.makeText(this@MainActivity, R.string.toast_aux_update_failed, Toast.LENGTH_SHORT).show()
+                                    }
                                 }
-                            }
-                        } catch (e: Exception) {
-                            Log.e("NFC", "Write failed", e)
-                            withContext(Dispatchers.Main) {
-                                binding.progressBar.visibility = View.GONE
-                                binding.tvStatus.text = getString(R.string.error_nfc_operation_failed, e.message ?: "Unknown error")
-                                Toast.makeText(this@MainActivity, R.string.toast_write_failed, Toast.LENGTH_SHORT).show()
+                            } catch (e: Exception) {
+                                Log.e("NFC", "Aux write failed", e)
+                                withContext(Dispatchers.Main) {
+                                    binding.progressBar.visibility = View.GONE
+                                    binding.tvStatus.text = getString(R.string.error_nfc_operation_failed, e.message ?: "Unknown error")
+                                    Toast.makeText(this@MainActivity, R.string.toast_aux_update_failed, Toast.LENGTH_SHORT).show()
+                                }
                             }
                         }
                     }
-                } else {
-                    readAndDisplayTag(it)
+                    isWriteMode -> {
+                        binding.progressBar.visibility = View.VISIBLE
+                        lifecycleScope.launch {
+                            try {
+                                val success = writeMemoryToTag(it)
+                                withContext(Dispatchers.Main) {
+                                    binding.progressBar.visibility = View.GONE
+                                    if (success) {
+                                        Toast.makeText(this@MainActivity, R.string.toast_write_complete, Toast.LENGTH_SHORT).show()
+                                        isWriteMode = false
+                                        updateModeIndicator()
+                                    } else {
+                                        Toast.makeText(this@MainActivity, R.string.toast_write_failed, Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e("NFC", "Write failed", e)
+                                withContext(Dispatchers.Main) {
+                                    binding.progressBar.visibility = View.GONE
+                                    binding.tvStatus.text = getString(R.string.error_nfc_operation_failed, e.message ?: "Unknown error")
+                                    Toast.makeText(this@MainActivity, R.string.toast_write_failed, Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                    }
+                    else -> {
+                        readAndDisplayTag(it)
+                    }
                 }
             }
         }
+    }
+
+    private suspend fun writeAuxToTag(tag: Tag): Boolean = withContext(Dispatchers.IO) {
+        val auxData = pendingAuxData ?: return@withContext false
+        val auxOffset = pendingAuxOffset
+        if (auxOffset <= 0) return@withContext false
+
+        val manager = NfcHelper(tag)
+        manager.writeAtOffset(auxOffset, auxData)
     }
 
     private fun ensureMapsLoaded() {

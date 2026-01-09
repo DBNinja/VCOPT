@@ -6,6 +6,7 @@
     <!-- Activity titles -->
     <string name="title_generator">Tag Generator</string>
     <string name="title_credits">Credits</string>
+    <string name="title_aux_editor">Edit Aux Region</string>
 
     <!-- MainActivity buttons -->
     <string name="btn_open_generator">Open generator</string>
@@ -155,4 +156,18 @@
     <string name="github_underflow">https://github.com/Und3rf10w</string>
     <string name="view_on_github">View on GitHub</string>
     <string name="menu_credits">Credits</string>
+
+    <!-- AuxEditorActivity -->
+    <string name="section_usage_tracking">USAGE TRACKING</string>
+    <string name="section_user_data">USER DATA</string>
+    <string name="hint_consumed_weight">Consumed weight</string>
+    <string name="hint_last_stir_time">Last stir time</string>
+    <string name="hint_workgroup">Workgroup</string>
+    <string name="hint_user_data">User data (notes)</string>
+    <string name="btn_update_aux">Update Aux Region</string>
+    <string name="aux_editor_info">Edit user-writable fields. This only updates the aux region, preserving the main tag data.</string>
+    <string name="btn_edit_aux">Edit aux data</string>
+    <string name="toast_aux_update_complete">Aux region updated!</string>
+    <string name="toast_aux_update_failed">Aux update failed. Try again.</string>
+    <string name="toast_no_aux_offset">Tag has no aux region offset. Cannot do partial write.</string>
 </resources>

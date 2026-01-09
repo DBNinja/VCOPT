@@ -24,6 +24,16 @@ private sealed class NdefRecord {
     data class Unknown(val type: String) : NdefRecord()
 }
 
+/**
+ * Result of deserializing a tag, including aux region location info for partial writes
+ */
+data class DeserializeResult(
+    val model: OpenPrintTagModel,
+    val auxByteOffset: Int?,      // Byte offset of aux region from start of NFC data
+    val auxByteSize: Int?,        // Size of aux region in bytes
+    val cborPayloadOffset: Int?   // Byte offset where CBOR payload starts
+)
+
 class Serializer(
     private val classMap: Map<String, Int>,
     private val typeMap: Map<String, Int>,
@@ -258,6 +268,21 @@ class Serializer(
     }
 
     /**
+     * Encode only the aux region for partial tag updates.
+     * Returns raw CBOR bytes (no NDEF wrapper).
+     */
+    fun encodeAuxOnly(aux: AuxRegion?): ByteArray {
+        val data = mutableMapOf<Int, Any>()
+
+        aux?.consumed_weight?.let { data[0] = it }
+        aux?.workgroup?.takeIf { it.isNotBlank() }?.let { data[1] = it }
+        aux?.general_purpose_range_user?.takeIf { it.isNotBlank() }?.let { data[2] = it }
+        aux?.last_stir_time?.let { data[3] = getDateEpoch(it)!! }
+
+        return if (data.isEmpty()) ByteArray(0) else mapper.writeValueAsBytes(data)
+    }
+
+    /**
      * Parse a single NDEF record from the buffer and return structured data
      */
     private fun parseNextNdefRecord(buffer: ByteBuffer): NdefRecord {
@@ -372,6 +397,124 @@ class Serializer(
             Log.e("Serializer", "Deserialize failed: ${e.message}")
             null
         }
+    }
+
+    /**
+     * Deserialize with offset tracking for partial aux writes.
+     * Returns DeserializeResult with aux region location info.
+     */
+    fun deserializeWithOffsets(data: ByteArray): DeserializeResult? {
+        return try {
+            val model = OpenPrintTagModel()
+            val buffer = ByteBuffer.wrap(data).order(ByteOrder.BIG_ENDIAN)
+            var cborPayloadOffset: Int? = null
+            var auxByteOffset: Int? = null
+            var auxByteSize: Int? = null
+
+            if (data.size < 8) return DeserializeResult(model, null, null, null)
+            buffer.position(4)
+
+            while (buffer.hasRemaining()) {
+                val tag = buffer.get().toInt() and 0xFF
+                if (tag == 0x03) {
+                    val lengthByte = buffer.get().toInt() and 0xFF
+                    val ndefMessageLength = if (lengthByte == 0xFF) buffer.short.toInt() and 0xFFFF else lengthByte
+                    val endOfMessage = buffer.position() + ndefMessageLength
+
+                    while (buffer.position() < endOfMessage && buffer.hasRemaining()) {
+                        val recordStartPos = buffer.position()
+                        when (val record = parseNextNdefRecord(buffer)) {
+                            is NdefRecord.CborRecord -> {
+                                // Calculate where this CBOR payload starts in the original data
+                                cborPayloadOffset = buffer.position() - record.payload.size
+                                val offsets = decodeRegionsWithOffsets(record.payload, model)
+                                if (offsets != null) {
+                                    // Aux offset is relative to CBOR payload start
+                                    auxByteOffset = cborPayloadOffset + offsets.first
+                                    auxByteSize = offsets.second
+                                }
+                            }
+                            is NdefRecord.UriRecord -> {
+                                model.urlRecord = UrlRegion(url = record.url, includeInTag = true)
+                            }
+                            is NdefRecord.Unknown -> {
+                                Log.d("Serializer", "Skipping unknown record type: ${record.type}")
+                            }
+                        }
+                    }
+                    break
+                } else if (tag == 0xFE) {
+                    break
+                }
+            }
+            DeserializeResult(model, auxByteOffset, auxByteSize, cborPayloadOffset)
+        } catch (e: Exception) {
+            Log.e("Serializer", "DeserializeWithOffsets failed: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Decode regions and return aux region offset info.
+     * Returns Pair(auxOffset, auxSize) relative to payload start, or null if no aux.
+     */
+    private fun decodeRegionsWithOffsets(payload: ByteArray, model: OpenPrintTagModel): Pair<Int, Int>? {
+        val factory = CBORFactory()
+        val parser = factory.createParser(payload)
+        var auxOffset: Int? = null
+        var auxSize: Int? = null
+
+        try {
+            var firstNode: JsonNode = mapper.readTree(parser) ?: return null
+
+            if (isVersionMarker(firstNode)) {
+                firstNode = mapper.readTree(parser) ?: return null
+            }
+
+            if (isMetaRegion(firstNode)) {
+                val metaEndPosition = parser.currentLocation.byteOffset.toInt()
+                val explicitMainOffset = if (firstNode.has("0")) firstNode.get("0").asInt() else null
+                val explicitMainSize = if (firstNode.has("1")) firstNode.get("1").asInt() else null
+                val explicitAuxOffset = if (firstNode.has("2")) firstNode.get("2").asInt() else null
+                val explicitAuxSize = if (firstNode.has("3")) firstNode.get("3").asInt() else null
+
+                val mainOffset = explicitMainOffset ?: metaEndPosition
+                val mainSize = explicitMainSize
+                    ?: (explicitAuxOffset?.minus(mainOffset) ?: (payload.size - mainOffset))
+
+                if (mainSize > 0 && mainOffset + mainSize <= payload.size) {
+                    val mainBytes = payload.copyOfRange(mainOffset, mainOffset + mainSize)
+                    model.main = decodeMainRegion(mainBytes) ?: MainRegion()
+                }
+
+                if (explicitAuxOffset != null) {
+                    auxOffset = explicitAuxOffset
+                    auxSize = explicitAuxSize ?: (payload.size - explicitAuxOffset)
+
+                    if (auxSize > 0 && explicitAuxOffset + auxSize <= payload.size) {
+                        val auxBytes = payload.copyOfRange(explicitAuxOffset, explicitAuxOffset + auxSize)
+                        model.aux = decodeAuxRegion(auxBytes)
+                    }
+                }
+            } else {
+                // No meta region - sequential CBOR parsing
+                model.main = decodeMainRegionFromNode(firstNode)
+                val mainEndPos = parser.currentLocation.byteOffset.toInt()
+
+                val secondNode: JsonNode? = mapper.readTree(parser)
+                if (secondNode != null) {
+                    auxOffset = mainEndPos
+                    model.aux = decodeAuxRegionFromNode(secondNode)
+                    auxSize = parser.currentLocation.byteOffset.toInt() - mainEndPos
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("Serializer", "Decoding error: ${e.message}")
+        } finally {
+            parser.close()
+        }
+
+        return if (auxOffset != null && auxSize != null) Pair(auxOffset, auxSize) else null
     }
 
     fun decodeRegions(payload: ByteArray, model: OpenPrintTagModel) {
