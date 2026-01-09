@@ -393,19 +393,38 @@ class Serializer(
             // Meta region typically uses keys 0-3 for offsets/sizes
             // Main region uses keys 0-5+ for UUIDs, GTIN, etc.
             if (isMetaRegion(firstNode)) {
-                val mainOffset = firstNode.path(0).asInt(0)
-                val mainSize = firstNode.path(1).asInt(0)
-                val auxOffset = firstNode.path(2).asInt(0)
-                val auxSize = firstNode.path(3).asInt(0)
+                // Get position where meta region ends (where main would start if offset not specified)
+                val metaEndPosition = parser.currentLocation.byteOffset.toInt()
 
-                // Meta-Guided Slice
-                if (mainSize > 0) {
+                // Get explicit values (null if missing)
+                val explicitMainOffset = if (firstNode.has("0")) firstNode.get("0").asInt() else null
+                val explicitMainSize = if (firstNode.has("1")) firstNode.get("1").asInt() else null
+                val explicitAuxOffset = if (firstNode.has("2")) firstNode.get("2").asInt() else null
+                val explicitAuxSize = if (firstNode.has("3")) firstNode.get("3").asInt() else null
+
+                // Calculate main region bounds
+                // If offset missing: region follows meta section
+                // If size missing: region spans to aux offset or payload end
+                val mainOffset = explicitMainOffset ?: metaEndPosition
+                val mainSize = explicitMainSize
+                    ?: (explicitAuxOffset?.minus(mainOffset) ?: (payload.size - mainOffset))
+
+                // Decode main region
+                if (mainSize > 0 && mainOffset + mainSize <= payload.size) {
                     val mainBytes = payload.copyOfRange(mainOffset, mainOffset + mainSize)
                     model.main = decodeMainRegion(mainBytes) ?: MainRegion()
                 }
-                if (auxSize > 0) {
-                    val auxBytes = payload.copyOfRange(auxOffset, auxOffset + auxSize)
-                    model.aux = decodeAuxRegion(auxBytes)
+
+                // Calculate aux region bounds (only if aux_region_offset is specified)
+                // Omitting aux_region_offset means aux region is not present
+                if (explicitAuxOffset != null) {
+                    // If size missing: aux spans to payload end
+                    val auxSize = explicitAuxSize ?: (payload.size - explicitAuxOffset)
+
+                    if (auxSize > 0 && explicitAuxOffset + auxSize <= payload.size) {
+                        val auxBytes = payload.copyOfRange(explicitAuxOffset, explicitAuxOffset + auxSize)
+                        model.aux = decodeAuxRegion(auxBytes)
+                    }
                 }
             } else {
                 // 2. Meta is OMITTED - First node is actually the Main Region
@@ -436,14 +455,19 @@ class Serializer(
 
     /**
      * Heuristic to check if a CBOR map is a Meta region vs Main region.
-     * Meta region focuses on offsets (0-3), while Main focuses on material data.
+     * Meta region uses keys 0-3 for offsets/sizes (small integers).
+     * Main region uses keys 0-3 for UUIDs (16-byte binary), not integers.
      */
     private fun isMetaRegion(node: JsonNode): Boolean {
-        // In Meta, key 0 is main_region_offset. 
-        // In Main, key 0 is instance_uuid (usually a 16-byte binary).
-        // If key 0 is a small integer, it's likely Meta.
-        val key0 = node.get(0)
-        return key0 != null && key0.isInt && key0.asInt() < 1000
+        // Check if any of keys 0-3 are small integers - indicates meta region
+        // Main region would have UUIDs (binary/string) at these keys, not integers
+        for (key in 0..3) {
+            val value = node.get(key.toString())
+            if (value != null && value.isInt && value.asInt() < 1000) {
+                return true
+            }
+        }
+        return false
     }
 
     /**
