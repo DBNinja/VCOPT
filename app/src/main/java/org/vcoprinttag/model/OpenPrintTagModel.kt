@@ -113,6 +113,7 @@ object NullableIntOrStringSerializer : KSerializer<String?> {
 // 5. Custom Serializer for List<String> that can decode from CBOR integer arrays
 // CBOR stores tags/certs as integer IDs, but we want String list for UI compatibility
 object IntListAsStringListSerializer : KSerializer<List<String>> {
+    @OptIn(ExperimentalSerializationApi::class)
     override val descriptor: SerialDescriptor = kotlinx.serialization.descriptors.listSerialDescriptor<String>()
 
     override fun serialize(encoder: Encoder, value: List<String>) {
