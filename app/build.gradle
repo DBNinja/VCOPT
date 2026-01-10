@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace "org.openprinttag.app"   // <-- add this
+    namespace "org.vcoprinttag"   // <-- add this
     compileSdk 35
 
     compileOptions {
@@ -31,7 +31,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "org.openprinttag.app"
+        applicationId "org.vcoprinttag"
         minSdk 25
         targetSdk 35
         versionCode 1

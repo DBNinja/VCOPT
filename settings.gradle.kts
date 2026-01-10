@@ -10,5 +10,5 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.9.0"
 }
 
-rootProject.name = "openprinttag-android"
+rootProject.name = "vcoprinttag-android"
 include(":app")

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- App name -->
-    <string name="app_name">OpenPrintTag Writer</string>
+    <string name="app_name">VCO Print Tag Writer</string>
 
     <!-- Activity titles -->
     <string name="title_generator">Tag Generator</string>

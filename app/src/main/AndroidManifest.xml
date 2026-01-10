@@ -4,12 +4,12 @@
     <uses-feature android:name="android.hardware.nfc" android:required="true"/>
 
     <application
-        android:label="OpenPrintTag Writer"
+        android:label="VCO Print Tag Writer"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:allowBackup="true"
         android:theme="@style/Theme.OpenPrintTag">
-        <activity android:name="org.openprinttag.MainActivity" android:exported="true" android:launchMode="singleTop">
+        <activity android:name="org.vcoprinttag.MainActivity" android:exported="true" android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
@@ -25,8 +25,8 @@
             <meta-data android:name="android.nfc.action.TECH_DISCOVERED"
                        android:resource="@xml/nfc_tech_filter"/>
         </activity>
-        <activity android:name="org.openprinttag.GeneratorActivity" android:exported="false"/>
-        <activity android:name="org.openprinttag.AuxEditorActivity" android:exported="false"/>
-        <activity android:name="org.openprinttag.CreditsActivity" android:exported="false"/>
+        <activity android:name="org.vcoprinttag.GeneratorActivity" android:exported="false"/>
+        <activity android:name="org.vcoprinttag.AuxEditorActivity" android:exported="false"/>
+        <activity android:name="org.vcoprinttag.CreditsActivity" android:exported="false"/>
     </application>
 </manifest>

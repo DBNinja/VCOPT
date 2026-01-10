@@ -1,4 +1,4 @@
-package org.openprinttag
+package org.vcoprinttag
 
 import android.content.Intent
 import android.net.Uri
@@ -11,10 +11,10 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.chip.Chip
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import org.openprinttag.app.R
-import org.openprinttag.app.databinding.ActivityCreditsBinding
-import org.openprinttag.model.LibraryLicense
-import org.openprinttag.model.LicenseRepository
+import org.vcoprinttag.R
+import org.vcoprinttag.databinding.ActivityCreditsBinding
+import org.vcoprinttag.model.LibraryLicense
+import org.vcoprinttag.model.LicenseRepository
 
 class CreditsActivity : AppCompatActivity() {
 

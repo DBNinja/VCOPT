@@ -1,4 +1,4 @@
-package org.openprinttag.util
+package org.vcoprinttag.util
 
 import java.nio.ByteBuffer
 import java.util.zip.CRC32

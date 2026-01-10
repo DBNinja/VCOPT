@@ -1,4 +1,4 @@
-package org.openprinttag.model
+package org.vcoprinttag.model
 
 import org.junit.Assert.*
 import org.junit.Test

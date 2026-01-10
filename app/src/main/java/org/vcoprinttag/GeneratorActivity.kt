@@ -1,4 +1,4 @@
-package org.openprinttag
+package org.vcoprinttag
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -31,11 +31,11 @@ import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.skydoves.colorpickerview.ColorEnvelope
 import com.skydoves.colorpickerview.ColorPickerDialog
 import com.skydoves.colorpickerview.listeners.ColorEnvelopeListener
-import org.openprinttag.app.R
-import org.openprinttag.app.databinding.ActivityGeneratorBinding
-import org.openprinttag.model.OpenPrintTagModel
-import org.openprinttag.model.UrlRegion
-import org.openprinttag.model.Serializer
+import org.vcoprinttag.R
+import org.vcoprinttag.databinding.ActivityGeneratorBinding
+import org.vcoprinttag.model.OpenPrintTagModel
+import org.vcoprinttag.model.UrlRegion
+import org.vcoprinttag.model.Serializer
 import org.yaml.snakeyaml.Yaml
 import java.io.InputStream
 import java.time.Instant

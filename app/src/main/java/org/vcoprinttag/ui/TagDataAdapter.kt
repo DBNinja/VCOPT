@@ -1,4 +1,4 @@
-package org.openprinttag.ui
+package org.vcoprinttag.ui
 
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
@@ -12,7 +12,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
-import org.openprinttag.app.R
+import org.vcoprinttag.R
 
 /**
  * RecyclerView adapter for displaying tag data in a card-based layout.

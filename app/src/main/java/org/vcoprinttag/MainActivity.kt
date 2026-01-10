@@ -1,4 +1,4 @@
-package org.openprinttag
+package org.vcoprinttag
 
 import android.app.Activity
 import android.app.PendingIntent
@@ -24,15 +24,15 @@ import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.openprinttag.app.R
-import org.openprinttag.app.databinding.ActivityMainBinding
-import org.openprinttag.model.OpenPrintTagModel
-import org.openprinttag.model.AuxRegion
-import org.openprinttag.model.DeserializeResult
-import org.openprinttag.model.Serializer
-import org.openprinttag.ui.TagDataAdapter
-import org.openprinttag.ui.TagDisplayBuilder
-import org.openprinttag.ui.TagDisplayItem
+import org.vcoprinttag.R
+import org.vcoprinttag.databinding.ActivityMainBinding
+import org.vcoprinttag.model.OpenPrintTagModel
+import org.vcoprinttag.model.AuxRegion
+import org.vcoprinttag.model.DeserializeResult
+import org.vcoprinttag.model.Serializer
+import org.vcoprinttag.ui.TagDataAdapter
+import org.vcoprinttag.ui.TagDisplayBuilder
+import org.vcoprinttag.ui.TagDisplayItem
 
 class MainActivity : AppCompatActivity() {
 

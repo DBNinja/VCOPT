@@ -1,11 +1,11 @@
-package org.openprinttag
+package org.vcoprinttag
 
 import org.junit.Assert.*
 import org.junit.Test
-import org.openprinttag.model.OpenPrintTagModel
-import org.openprinttag.model.MainRegion
-import org.openprinttag.model.AuxRegion
-import org.openprinttag.model.Serializer
+import org.vcoprinttag.model.OpenPrintTagModel
+import org.vcoprinttag.model.MainRegion
+import org.vcoprinttag.model.AuxRegion
+import org.vcoprinttag.model.Serializer
 
 class SerializerUnitTest {
 

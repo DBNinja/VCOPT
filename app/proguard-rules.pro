@@ -1,8 +1,8 @@
 # Kotlin Serialization
 -keepattributes *Annotation*, InnerClasses
 -keepclassmembers class kotlinx.serialization.json.** { *** Companion; }
--keep,includedescriptorclasses class org.openprinttag.model.**$$serializer { *; }
--keepclassmembers class org.openprinttag.model.** { *** Companion; }
+-keep,includedescriptorclasses class org.vcoprinttag.model.**$$serializer { *; }
+-keepclassmembers class org.vcoprinttag.model.** { *** Companion; }
 
 # Jackson
 -keep class com.fasterxml.jackson.databind.ObjectMapper { public <methods>; }
@@ -13,4 +13,4 @@
 -keep class org.yaml.snakeyaml.** { *; }
 
 # Model classes
--keep class org.openprinttag.model.** { *; }
+-keep class org.vcoprinttag.model.** { *; }

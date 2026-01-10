@@ -1,4 +1,4 @@
-package org.openprinttag
+package org.vcoprinttag
 
 import android.app.Activity
 import android.content.Intent
@@ -7,7 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.datepicker.MaterialDatePicker
-import org.openprinttag.app.databinding.ActivityAuxEditorBinding
+import org.vcoprinttag.databinding.ActivityAuxEditorBinding
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId

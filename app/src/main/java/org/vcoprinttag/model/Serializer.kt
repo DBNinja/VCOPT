@@ -1,12 +1,12 @@
 @file:OptIn(ExperimentalStdlibApi::class)
 
-package org.openprinttag.model
+package org.vcoprinttag.model
 
 import android.util.Log
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
-import org.openprinttag.util.ByteUtils
+import org.vcoprinttag.util.ByteUtils
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
