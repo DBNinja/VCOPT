@@ -20,7 +20,7 @@ Note: Requires `ANDROID_HOME` environment variable set (e.g., `/Users/<user>/Lib
 
 ## Architecture
 
-**Package:** `org.openprinttag.app` (namespace), `org.openprinttag` (code)
+**Package:** `org.vcoprinttag`
 
 ### Core Components
 
@@ -28,7 +28,7 @@ Note: Requires `ANDROID_HOME` environment variable set (e.g., `/Users/<user>/Lib
 - **GeneratorActivity** - Material data editor with complex UI for configuring material properties. Implements smart tag selection logic (implies/hints system) and returns generated binary data to MainActivity.
 - **NfcHelper** - Abstraction layer for NFC operations supporting both NfcA and NfcV tag technologies. Handles page-based reading (pages 4-129).
 - **OpenPrintTagModel** (`model/`) - Data model with nested regions (Meta, Main, Aux, URL). Uses Kotlinx.serialization with custom serializers and `@SerialName` for CBOR integer key mapping. `MainRegion` and `AuxRegion` are top-level classes, not nested.
-- **Serializer** (`model/`) - Bidirectional CBOR serialization with NDEF record formatting. MIME type: `application/vnd.openprinttag`. Key methods: `serialize()`, `deserialize()`, `generateDualRecordBin()`.
+- **Serializer** (`model/`) - Bidirectional CBOR serialization with NDEF record formatting. MIME type: `application/vnd.openprinttag`. Key methods: `serialize()`, `deserialize()`. The `SPEC_SIZE_LIMIT` constant (316 bytes) defines the OpenPrintTag spec maximum size.
 
 ### Data Configuration
 
@@ -65,7 +65,7 @@ YAML files in `app/src/main/assets/data/` define enum maps loaded at runtime:
 
 ## Testing
 
-- Unit tests in `app/src/test/java/org/openprinttag/`
+- Unit tests in `app/src/test/java/org/vcoprinttag/`
 - `testOptions.returnDefaultValues = true` in build.gradle for Android mocks
 - Focus on covering `model/` logic (Serializer, OpenPrintTagModel)
 - Run with `./gradlew test`
