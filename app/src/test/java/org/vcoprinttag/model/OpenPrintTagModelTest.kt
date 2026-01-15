@@ -57,7 +57,7 @@ class OpenPrintTagModelTest {
 
         assertNotNull("Meta region should have default value", model.meta)
         assertNotNull("Main region should have default value", model.main)
-        assertNotNull("Aux region should have default value", model.aux)
+        assertNull("Aux region should be null by default", model.aux)
         assertNull("URL region should be null by default", model.urlRecord)
     }
 

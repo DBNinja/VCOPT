@@ -171,4 +171,9 @@
     <string name="toast_aux_update_complete">Aux region updated!</string>
     <string name="toast_aux_update_failed">Aux update failed. Try again.</string>
     <string name="toast_no_aux_offset">Tag has no aux region offset. Cannot do partial write.</string>
+
+    <!-- Add aux region dialog -->
+    <string name="dialog_title_add_aux">Add Aux Region?</string>
+    <string name="dialog_message_add_aux">This tag does not have an aux region. Would you like to add one? This will rewrite the entire tag.</string>
+    <string name="dialog_btn_add">Add Aux Region</string>
 </resources>

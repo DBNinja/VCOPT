@@ -20,6 +20,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -277,10 +278,62 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (cachedAuxOffset == null || cachedAuxOffset!! <= 0) {
-            Toast.makeText(this, R.string.toast_no_aux_offset, Toast.LENGTH_LONG).show()
+            // Show confirmation dialog to add aux region
+            showAddAuxRegionDialog()
             return
         }
 
+        launchAuxEditorActivity()
+    }
+
+    private fun showAddAuxRegionDialog() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.dialog_title_add_aux)
+            .setMessage(R.string.dialog_message_add_aux)
+            .setNegativeButton(R.string.dialog_btn_cancel, null)
+            .setPositiveButton(R.string.dialog_btn_add) { _, _ ->
+                addAuxRegionAndLaunchEditor()
+            }
+            .show()
+    }
+
+    private fun addAuxRegionAndLaunchEditor() {
+        val model = cachedModel ?: return
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            ensureMapsLoaded()
+            val serializer = Serializer(classMap, typeMap, tagsMap, certsMap)
+
+            // Add empty aux region to the model
+            model.aux = AuxRegion()
+
+            // Re-serialize with aux region reserved (handles URL automatically)
+            val newData = serializer.serialize(model, reserveAuxSpace = true)
+
+            // Get the new aux offset
+            val result = serializer.deserializeWithOffsets(newData)
+
+            withContext(Dispatchers.Main) {
+                cachedTagData = newData
+                cachedModel = result?.model
+                cachedAuxOffset = result?.auxByteOffset
+
+                // Update display
+                displayTagData(cachedModel)
+                binding.tvStatus.text = getString(R.string.status_new_bin_cached)
+
+                // Enable write mode for full tag rewrite
+                isWriteMode = true
+                isAuxWriteMode = false
+                updateModeIndicator()
+
+                // Launch aux editor
+                launchAuxEditorActivity()
+            }
+        }
+    }
+
+    private fun launchAuxEditorActivity() {
         val intent = Intent(this, AuxEditorActivity::class.java).apply {
             // Pass existing aux data
             cachedModel?.aux?.let { aux ->

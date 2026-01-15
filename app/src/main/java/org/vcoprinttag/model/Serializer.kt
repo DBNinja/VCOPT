@@ -44,8 +44,7 @@ class Serializer(
     private val mapper = ObjectMapper(CBORFactory())
 
     companion object {
-        // Default size reserved for aux region when generating new tags
-        const val DEFAULT_AUX_RESERVE_SIZE = 32
+        const val SPEC_SIZE_LIMIT = 316
     }
 
     fun serialize(model: OpenPrintTagModel, reserveAuxSpace: Boolean = false): ByteArray {
@@ -59,11 +58,8 @@ class Serializer(
         // - We have actual aux data
         val needsMeta = reserveAuxSpace || auxRegion.isNotEmpty()
 
-        // Calculate aux region start offset (relative to CBOR payload start)
-        // Structure: [meta] + [main] + [aux or reserved space]
-        val metaRegion: ByteArray
-        val auxReservedSpace: ByteArray
-
+        // 3. Build the CBOR payload (meta + main + aux)
+        val cborPayload: ByteArray
         if (needsMeta) {
             // First pass: calculate meta size by encoding a placeholder
             // Meta region format: {0: main_offset, 2: aux_offset}
@@ -75,35 +71,45 @@ class Serializer(
             val auxOffset = mainOffset + mainRegion.size
 
             // Encode final meta region with correct offsets
-            metaRegion = encodeMeta(mainOffset, auxOffset)
+            var metaRegion = encodeMeta(mainOffset, auxOffset)
 
             // If meta size changed, recalculate (rare edge case)
             val actualMainOffset = metaRegion.size
             val actualAuxOffset = actualMainOffset + mainRegion.size
 
             // Re-encode if offsets changed
-            val finalMeta = if (actualMainOffset != mainOffset || actualAuxOffset != auxOffset) {
-                encodeMeta(actualMainOffset, actualAuxOffset)
-            } else {
-                metaRegion
+            if (actualMainOffset != mainOffset || actualAuxOffset != auxOffset) {
+                metaRegion = encodeMeta(actualMainOffset, actualAuxOffset)
             }
 
-            // Determine aux space
-            auxReservedSpace = if (auxRegion.isNotEmpty()) {
+            // Determine aux space with padding to fill to spec limit
+            val auxReservedSpace = if (auxRegion.isNotEmpty()) {
                 auxRegion
             } else if (reserveAuxSpace) {
-                // Reserve space for future aux data with an empty CBOR map
-                // Don't pad with zeros as it causes parsing issues
-                mapper.writeValueAsBytes(emptyMap<Int, Any>())
+                // Reserve space for future aux data with an empty CBOR map plus zero padding
+                val emptyMap = mapper.writeValueAsBytes(emptyMap<Int, Any>())
+                val url = model.urlRecord?.url?.takeIf { it.isNotBlank() }
+                val ndefOverhead = calculateNdefOverhead(url)
+                val currentCborSize = metaRegion.size + mainRegion.size + emptyMap.size
+                val availableCborSpace = SPEC_SIZE_LIMIT - ndefOverhead
+                val paddingSize = maxOf(0, availableCborSpace - currentCborSize)
+                emptyMap + ByteArray(paddingSize) { 0 }
             } else {
                 ByteArray(0)
             }
 
-            // Use final meta
-            return buildNdefMessage(finalMeta, mainRegion, auxReservedSpace)
+            cborPayload = metaRegion + mainRegion + auxReservedSpace
         } else {
             // No meta region - just main region
-            return buildNdefMessage(ByteArray(0), mainRegion, ByteArray(0))
+            cborPayload = mainRegion
+        }
+
+        // 4. Build NDEF message - dual record if URL present, single record otherwise
+        val url = model.urlRecord?.url?.takeIf { it.isNotBlank() }
+        return if (url != null) {
+            buildDualRecordNdef(cborPayload, url)
+        } else {
+            buildSingleRecordNdef(cborPayload)
         }
     }
 
@@ -118,34 +124,41 @@ class Serializer(
     }
 
     /**
-     * Build the complete NDEF message with header
+     * Calculate NDEF wrapper overhead based on record format
      */
-    private fun buildNdefMessage(metaRegion: ByteArray, mainRegion: ByteArray, auxRegion: ByteArray): ByteArray {
+    private fun calculateNdefOverhead(url: String?): Int {
+        return if (url != null) {
+            // Dual record: 8 prefix + 6 CBOR header + 28 MIME type + 4 URI header + 1 prefix + url.length + 1 terminator
+            48 + url.removePrefix("https://www.").toByteArray(Charsets.UTF_8).size
+        } else {
+            // Single record: 8 prefix + 34 header + 1 terminator
+            43
+        }
+    }
+
+    /**
+     * Build single-record NDEF message (CBOR only)
+     */
+    private fun buildSingleRecordNdef(cborPayload: ByteArray): ByteArray {
+        val mimeType = "application/vnd.openprinttag"
+        val mimeBytes = mimeType.toByteArray(Charsets.US_ASCII)
+
         val header = ByteBuffer.allocate(42)
         header.put(byteArrayOf(0xE1.toByte(), 0x40.toByte(), 0x27.toByte(), 0x01.toByte()))
         header.put(0x03.toByte()) // NDEF
         header.put(0xFF.toByte()) // Long length indicator
 
-        // Calculate sizes
-        val cborSize = metaRegion.size + mainRegion.size + auxRegion.size
-        val payloadLength = cborSize + (header.capacity() - 8)
-
+        val payloadLength = cborPayload.size + (header.capacity() - 8)
         header.putShort(payloadLength.toShort())
 
         header.put(0xC2.toByte()) // NDEF Record Header. MB=1, ME=1, TNF=2 (MIME), SR=0 (Long Record).
-        header.put(0x1C.toByte()) // 28 bytes for MIME length
-
-        header.putInt(cborSize)
-        val mimeType = "application/vnd.openprinttag"
-        val mimeBytes = mimeType.toByteArray(Charsets.US_ASCII)
+        header.put(mimeBytes.size.toByte())
+        header.putInt(cborPayload.size)
         header.put(mimeBytes)
 
-        val totalSize = metaRegion.size + mainRegion.size + auxRegion.size + header.capacity()
-        val body = ByteBuffer.allocate(totalSize)
+        val body = ByteBuffer.allocate(header.capacity() + cborPayload.size)
             .put(header.array())
-            .put(metaRegion)
-            .put(mainRegion)
-            .put(auxRegion)
+            .put(cborPayload)
             .array()
 
         return ByteBuffer.allocate(body.size + 1)
@@ -154,16 +167,18 @@ class Serializer(
             .array()
     }
 
-
-    fun generateDualRecordBin(cborPayload: ByteArray, urlString: String): ByteArray {
+    /**
+     * Build dual-record NDEF message (CBOR + URL)
+     */
+    private fun buildDualRecordNdef(cborPayload: ByteArray, urlString: String): ByteArray {
         // --- 1. Prepare URI Record ---
         // Using https://www. (prefix 0x02)
         val urlBody = urlString.removePrefix("https://www.")
         val urlPayload = byteArrayOf(0x02.toByte()) + urlBody.toByteArray(Charsets.UTF_8)
-        
+
         // URI Record Header: MB=0, ME=1, TNF=0x01 (Well-Known), SR=1 (Short)
         // 0x51 = 01010001 (ME, SR, TNF=1)
-        val uriRecordHeader = ByteBuffer.allocate(3 + 1 + urlPayload.size).apply {
+        val uriRecord = ByteBuffer.allocate(3 + 1 + urlPayload.size).apply {
             put(0x51.toByte())               // Header
             put(0x01.toByte())               // Type Length ("U" is 1 byte)
             put(urlPayload.size.toByte())    // Payload Length (SR=1)
@@ -184,25 +199,28 @@ class Serializer(
         }.array()
 
         // --- 3. Assemble Full Message ---
-        val totalNdefSize = cborRecord.size + uriRecordHeader.size
-        
-        val finalBuffer = ByteBuffer.allocate(8 + totalNdefSize + 1).apply {
+        val totalNdefSize = cborRecord.size + uriRecord.size
+
+        return ByteBuffer.allocate(8 + totalNdefSize + 1).apply {
             order(ByteOrder.BIG_ENDIAN)
             // NFC Prefix
             put(byteArrayOf(0xE1.toByte(), 0x40.toByte(), 0x27.toByte(), 0x01.toByte()))
             put(0x03.toByte())          // NDEF Tag
             put(0xFF.toByte())          // Long Length
             putShort(totalNdefSize.toShort())
-            
+
             // Records
             put(cborRecord)
-            put(uriRecordHeader)
-            
+            put(uriRecord)
+
             // Terminator
             put(0xFE.toByte())
-        }
+        }.array()
+    }
 
-        return finalBuffer.array()
+    @Deprecated("Use serialize() instead, which now handles URL records automatically")
+    fun generateDualRecordBin(cborPayload: ByteArray, urlString: String): ByteArray {
+        return buildDualRecordNdef(cborPayload, urlString)
     }
 
     private fun encodeMain(m: OpenPrintTagModel): ByteArray {

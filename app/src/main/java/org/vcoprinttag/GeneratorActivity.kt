@@ -632,58 +632,14 @@ class GeneratorActivity : AppCompatActivity() {
             val model = buildModelFromUI()
             val serializer = Serializer(classMap, typeMap, tagsMap, certsMap)
 
-            // If URL is provided, generate dual record (CBOR + URL)
-            val bin = if (model.urlRecord?.url?.isNotBlank() == true) {
-                val cborOnly = serializer.serialize(model, reserveAuxSpace = true)
-                // Extract CBOR payload from the single-record bin
-                val cborPayload = extractCborPayload(cborOnly)
-                serializer.generateDualRecordBin(cborPayload, model.urlRecord!!.url)
-            } else {
-                serializer.serialize(model, reserveAuxSpace = true)
-            }
+            // serialize() now handles URL records automatically
+            val bin = serializer.serialize(model, reserveAuxSpace = true)
 
             val resultIntent = Intent()
             resultIntent.putExtra("GEN_BIN_DATA", bin)
             setResult(Activity.RESULT_OK, resultIntent)
             finish()
         }
-    }
-
-    /**
-     * Extract raw CBOR payload from serialized NFC data (skipping NDEF headers)
-     */
-    private fun extractCborPayload(data: ByteArray): ByteArray {
-        // Find NDEF message (0x03) and extract CBOR
-        for (i in 4 until minOf(data.size, 20)) {
-            if (data[i] == 0x03.toByte()) {
-                val lengthByte = data[i + 1].toInt() and 0xFF
-                val recordStart = if (lengthByte == 0xFF) i + 4 else i + 2
-
-                // Parse record header
-                val recordHeader = data[recordStart].toInt() and 0xFF
-                val isShortRecord = (recordHeader and 0x10) != 0
-                val typeLength = data[recordStart + 1].toInt() and 0xFF
-                val payloadLengthOffset = recordStart + 2
-
-                val payloadLength = if (isShortRecord) {
-                    data[payloadLengthOffset].toInt() and 0xFF
-                } else {
-                    ((data[payloadLengthOffset].toInt() and 0xFF) shl 24) or
-                    ((data[payloadLengthOffset + 1].toInt() and 0xFF) shl 16) or
-                    ((data[payloadLengthOffset + 2].toInt() and 0xFF) shl 8) or
-                    (data[payloadLengthOffset + 3].toInt() and 0xFF)
-                }
-
-                val payloadStart = if (isShortRecord) {
-                    payloadLengthOffset + 1 + typeLength
-                } else {
-                    payloadLengthOffset + 4 + typeLength
-                }
-
-                return data.copyOfRange(payloadStart, payloadStart + payloadLength)
-            }
-        }
-        return ByteArray(0)
     }
 
     private fun buildModelFromUI(): OpenPrintTagModel {

@@ -16,7 +16,7 @@ import kotlinx.serialization.encoding.Encoder
 data class OpenPrintTagModel(
     var meta: MetaRegion? = MetaRegion(),
     var main: MainRegion = MainRegion(),
-    var aux: AuxRegion? = AuxRegion(),
+    var aux: AuxRegion? = null,
 
     // URL is usually a standard NDEF record, not CBOR
     var urlRecord: UrlRegion? = null
