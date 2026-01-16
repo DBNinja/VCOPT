@@ -3,7 +3,6 @@ package org.vcoprinttag.model
 import org.junit.Test
 import org.junit.Assert.*
 import org.junit.Before
-import java.time.LocalDate
 
 /**
  * Comprehensive encode/decode tests based on the OpenPrintTag test suite.

@@ -21,19 +21,15 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.vcoprinttag.R
 import org.vcoprinttag.databinding.ActivityMainBinding
 import org.vcoprinttag.model.OpenPrintTagModel
 import org.vcoprinttag.model.AuxRegion
-import org.vcoprinttag.model.DeserializeResult
 import org.vcoprinttag.model.Serializer
 import org.vcoprinttag.ui.TagDataAdapter
 import org.vcoprinttag.ui.TagDisplayBuilder
-import org.vcoprinttag.ui.TagDisplayItem
 
 class MainActivity : AppCompatActivity() {
 

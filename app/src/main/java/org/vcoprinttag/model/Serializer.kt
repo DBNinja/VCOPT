@@ -6,11 +6,8 @@ import android.util.Log
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
-import org.vcoprinttag.util.ByteUtils
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.nio.charset.StandardCharsets
-import java.time.ZoneOffset
 import kotlinx.serialization.decodeFromByteArray
 import kotlinx.serialization.cbor.Cbor
 import kotlinx.serialization.ExperimentalSerializationApi
