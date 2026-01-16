@@ -137,8 +137,8 @@ class NfcHelper(private val tag: Tag) {
             if (blockOffset > 0) {
                 // Read current block
                 val readCmd = ByteArray(2 + uid.size + 1)
-                readCmd[0] = 0x02
-                readCmd[1] = 0x20.toByte()
+                readCmd[0] = 0x22  // Address flag (0x20) + high data rate (0x02)
+                readCmd[1] = 0x20.toByte()  // READ_SINGLE_BLOCK command
                 System.arraycopy(uid, 0, readCmd, 2, uid.size)
                 readCmd[2 + uid.size] = currentBlock.toByte()
                 val resp = nfcV.transceive(readCmd)
@@ -238,10 +238,10 @@ class NfcHelper(private val tag: Tag) {
             val blocks = mutableListOf<Byte>()
             for (blockNum in 0 until 129) {
                 try {
-                    val flags: Byte = 0x02
+                    val flags: Byte = 0x22  // Address flag (0x20) + high data rate (0x02)
                     val cmd = ByteArray(2 + uid.size + 1)
                     cmd[0] = flags
-                    cmd[1] = 0x20.toByte()
+                    cmd[1] = 0x20.toByte()  // READ_SINGLE_BLOCK command
                     System.arraycopy(uid, 0, cmd, 2, uid.size)
                     cmd[2 + uid.size] = blockNum.toByte()
                     val resp = nfcV.transceive(cmd)
