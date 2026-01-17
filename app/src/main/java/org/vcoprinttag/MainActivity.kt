@@ -49,6 +49,13 @@ class MainActivity : AppCompatActivity() {
     // Tag data adapter
     private lateinit var tagDataAdapter: TagDataAdapter
 
+    // Tech list array for NFC foreground dispatch
+    private val techListsArray = arrayOf(
+        arrayOf(android.nfc.tech.NfcA::class.java.name),
+        arrayOf(android.nfc.tech.NfcV::class.java.name),
+        arrayOf(android.nfc.tech.Ndef::class.java.name)
+    )
+
     // Enum maps for deserialization (loaded lazily)
     private var classMap: Map<String, Int> = emptyMap()
     private var typeMap: Map<String, Int> = emptyMap()
@@ -198,6 +205,11 @@ class MainActivity : AppCompatActivity() {
 
         // Initialize mode indicator
         updateModeIndicator()
+
+        // Handle NFC intent that launched the activity (cold start)
+        if (savedInstanceState == null) {
+            handleNfcIntent(intent)
+        }
     }
 
     private fun setupClickListeners() {
@@ -502,7 +514,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         val intent = Intent(this, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
         val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_MUTABLE)
-        nfcAdapter?.enableForegroundDispatch(this, pendingIntent, null, null)
+        nfcAdapter?.enableForegroundDispatch(this, pendingIntent, null, techListsArray)
     }
 
     override fun onPause() {
@@ -512,9 +524,14 @@ class MainActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)  // Update the activity's intent
+        handleNfcIntent(intent)
+    }
 
+    private fun handleNfcIntent(intent: Intent) {
         if (NfcAdapter.ACTION_TAG_DISCOVERED == intent.action ||
-            NfcAdapter.ACTION_TECH_DISCOVERED == intent.action) {
+            NfcAdapter.ACTION_TECH_DISCOVERED == intent.action ||
+            NfcAdapter.ACTION_NDEF_DISCOVERED == intent.action) {
 
             @Suppress("DEPRECATION")
             val tag: Tag? = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG)
