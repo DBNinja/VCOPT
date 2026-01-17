@@ -34,14 +34,39 @@
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
+            android:id="@+id/mainFormContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingHorizontal="@dimen/spacing_md">
 
+            <!-- Usage Profile Selector -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/layoutUsageProfile"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:layout_marginBottom="@dimen/spacing_sm"
+                android:hint="@string/hint_usage_profile">
+
+                <AutoCompleteTextView
+                    android:id="@+id/dropdownUsageProfile"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="none" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
             <!-- ============================================ -->
             <!-- SECTION: Identity -->
             <!-- ============================================ -->
+            <LinearLayout
+                android:id="@+id/sectionIdentity"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -115,9 +140,17 @@
 
             </com.google.android.material.textfield.TextInputLayout>
 
+            </LinearLayout> <!-- End sectionIdentity -->
+
             <!-- ============================================ -->
             <!-- SECTION: Material Classification -->
             <!-- ============================================ -->
+            <LinearLayout
+                android:id="@+id/sectionMaterial"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -175,9 +208,17 @@
 
             </com.google.android.material.textfield.TextInputLayout>
 
+            </LinearLayout> <!-- End sectionMaterial -->
+
             <!-- ============================================ -->
             <!-- SECTION: Appearance (Colors) -->
             <!-- ============================================ -->
+            <LinearLayout
+                android:id="@+id/sectionAppearance"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -238,12 +279,41 @@
                     android:orientation="vertical"
                     android:padding="@dimen/spacing_md">
 
-                    <TextView
+                    <!-- Clickable Header -->
+                    <LinearLayout
+                        android:id="@+id/headerSecondaryColors"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="@dimen/spacing_sm"
-                        style="@style/TextAppearance.OpenPrintTag.PropertyLabel"
-                        android:text="@string/label_secondary_colors" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            style="@style/TextAppearance.OpenPrintTag.PropertyLabel"
+                            android:text="@string/label_secondary_colors" />
+
+                        <ImageView
+                            android:id="@+id/iconExpandSecondaryColors"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_expand_more"
+                            android:contentDescription="@string/content_desc_expand" />
+
+                    </LinearLayout>
+
+                    <!-- Expandable Content -->
+                    <LinearLayout
+                        android:id="@+id/contentSecondaryColors"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginTop="@dimen/spacing_sm"
+                        android:visibility="gone">
 
                     <!-- Secondary Color 0 -->
                     <LinearLayout
@@ -424,13 +494,23 @@
 
                     </LinearLayout>
 
+                    </LinearLayout> <!-- End contentSecondaryColors -->
+
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
 
+            </LinearLayout> <!-- End sectionAppearance -->
+
             <!-- ============================================ -->
             <!-- SECTION: Weights -->
             <!-- ============================================ -->
+            <LinearLayout
+                android:id="@+id/sectionWeights"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -493,9 +573,17 @@
 
             </com.google.android.material.textfield.TextInputLayout>
 
+            </LinearLayout> <!-- End sectionWeights -->
+
             <!-- ============================================ -->
             <!-- SECTION: Physical Properties -->
             <!-- ============================================ -->
+            <LinearLayout
+                android:id="@+id/sectionPhysical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
             <TextView
                 android:id="@+id/sectionPhysicalHeader"
                 android:layout_width="match_parent"
@@ -651,6 +739,8 @@
                 </LinearLayout>
 
             </LinearLayout>
+
+            </LinearLayout> <!-- End sectionPhysical -->
 
             <!-- ============================================ -->
             <!-- SECTION: Temperatures (FFF-specific) -->
@@ -1169,6 +1259,12 @@
             <!-- ============================================ -->
             <!-- SECTION: Dates -->
             <!-- ============================================ -->
+            <LinearLayout
+                android:id="@+id/sectionDates"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -1224,9 +1320,17 @@
 
             </LinearLayout>
 
+            </LinearLayout> <!-- End sectionDates -->
+
             <!-- ============================================ -->
             <!-- SECTION: Tags & Certifications -->
             <!-- ============================================ -->
+            <LinearLayout
+                android:id="@+id/sectionTagsCerts"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -1268,6 +1372,8 @@
                 android:layout_marginBottom="@dimen/spacing_sm"
                 app:chipSpacingHorizontal="@dimen/spacing_xs"
                 app:chipSpacingVertical="@dimen/spacing_xs" />
+
+            </LinearLayout> <!-- End sectionTagsCerts -->
 
             <!-- ============================================ -->
             <!-- SECTION: Advanced (UUIDs & IDs) - Collapsible -->
@@ -1428,26 +1534,37 @@
 
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <!-- URL Record -->
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/layoutUrl"
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/spacing_sm"
-                        android:hint="@string/hint_url">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/getUrl"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="textUri" />
-
-                    </com.google.android.material.textfield.TextInputLayout>
-
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
+
+            <!-- ============================================ -->
+            <!-- SECTION: URL -->
+            <!-- ============================================ -->
+            <LinearLayout
+                android:id="@+id/sectionUrl"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/layoutUrl"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_lg"
+                    android:layout_marginBottom="@dimen/spacing_xl"
+                    android:hint="@string/hint_url">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/getUrl"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textUri" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+            </LinearLayout>
 
         </LinearLayout>
 

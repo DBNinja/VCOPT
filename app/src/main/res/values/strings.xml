@@ -54,6 +54,7 @@
 
     <!-- GeneratorActivity labels -->
     <string name="label_secondary_colors">Secondary Colors</string>
+    <string name="content_desc_expand">Expand/Collapse</string>
     <string name="label_print_temp">Print Temperature</string>
     <string name="label_bed_temp">Bed Temperature</string>
     <string name="label_chamber_temp">Chamber Temperature</string>
@@ -62,6 +63,7 @@
     <string name="label_brand_specific_ids">Brand-Specific IDs</string>
 
     <!-- GeneratorActivity hints - Identity -->
+    <string name="hint_usage_profile">Usage Profile</string>
     <string name="hint_brand_name">Brand name</string>
     <string name="hint_material_name">Material name</string>
     <string name="hint_gtin">GTIN</string>

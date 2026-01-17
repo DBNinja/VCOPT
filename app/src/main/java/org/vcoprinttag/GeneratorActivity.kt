@@ -65,6 +65,11 @@ data class CategoryMetadata(
     val emoji: String
 )
 
+enum class UsageProfile(val displayName: String) {
+    FULL_SPOOL("Full Spool"),
+    SWATCH_STICKER("Swatch / Sticker")
+}
+
 private val markdownLinkRegex = Regex("""\[([^\]]+)]\(([^)]+)\)""")
 
 private fun markdownToHtml(text: String): String {
@@ -170,6 +175,12 @@ class GeneratorActivity : AppCompatActivity() {
 
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
+    // Profile state
+    private var currentProfile = UsageProfile.FULL_SPOOL
+
+    // Collapsible section state
+    private var isSecondaryColorsExpanded = false
+
     sealed class TagDisplayItem {
         data class Header(val title: String) : TagDisplayItem()
         data class TagRow(val entry: OptionEntry) : TagDisplayItem()
@@ -200,8 +211,14 @@ class GeneratorActivity : AppCompatActivity() {
         // Setup dropdowns
         setupDropdowns()
 
+        // Setup profile dropdown
+        setupProfileDropdown()
+
         // Setup color pickers
         setupColorPickers()
+
+        // Setup collapsible sections
+        setupCollapsibleSections()
 
         // Setup date pickers
         setupDatePickers()
@@ -363,6 +380,7 @@ class GeneratorActivity : AppCompatActivity() {
 
     private fun updateFieldVisibilityForMaterialClass() {
         val materialClass = binding.autoCompleteMaterialClass.text?.toString() ?: "FFF"
+        val isSwatchMode = currentProfile == UsageProfile.SWATCH_STICKER
 
         when (materialClass.uppercase()) {
             "SLA" -> {
@@ -370,7 +388,7 @@ class GeneratorActivity : AppCompatActivity() {
                 binding.groupFffPhysical.visibility = View.GONE
                 binding.groupFffTemperatures.visibility = View.GONE
                 binding.groupFffContainer.visibility = View.GONE
-                binding.groupSlaFields.visibility = View.VISIBLE
+                binding.groupSlaFields.visibility = if (isSwatchMode) View.GONE else View.VISIBLE
             }
             "SLS" -> {
                 // SLS: Show temperatures (chamber temp relevant), hide filament-specific and SLA
@@ -381,12 +399,87 @@ class GeneratorActivity : AppCompatActivity() {
             }
             else -> { // FFF (default)
                 // FFF: Show FFF fields, hide SLA fields
-                binding.groupFffPhysical.visibility = View.VISIBLE
+                binding.groupFffPhysical.visibility = if (isSwatchMode) View.GONE else View.VISIBLE
                 binding.groupFffTemperatures.visibility = View.VISIBLE
-                binding.groupFffContainer.visibility = View.VISIBLE
+                binding.groupFffContainer.visibility = if (isSwatchMode) View.GONE else View.VISIBLE
                 binding.groupSlaFields.visibility = View.GONE
             }
         }
+    }
+
+    private fun setupProfileDropdown() {
+        val adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_dropdown_item_1line,
+            UsageProfile.entries.map { it.displayName }
+        )
+        binding.dropdownUsageProfile.setAdapter(adapter)
+        binding.dropdownUsageProfile.setText(currentProfile.displayName, false)
+        binding.dropdownUsageProfile.setOnItemClickListener { _, _, position, _ ->
+            applyProfile(UsageProfile.entries[position])
+        }
+    }
+
+    private fun getSectionConfig(profile: UsageProfile): List<Pair<View, Boolean>> {
+        return when (profile) {
+            UsageProfile.FULL_SPOOL -> listOf(
+                binding.sectionIdentity to true,
+                binding.sectionMaterial to true,
+                binding.sectionAppearance to true,
+                binding.sectionWeights to true,
+                binding.sectionPhysical to true,
+                binding.groupFffTemperatures to true,
+                binding.groupFffContainer to true,
+                binding.groupSlaFields to true,
+                binding.sectionDates to true,
+                binding.sectionTagsCerts to true,
+                binding.cardAdvanced to true,
+                binding.sectionUrl to true
+            )
+            UsageProfile.SWATCH_STICKER -> listOf(
+                binding.sectionIdentity to true,      // Show (but hide GTIN/Country within)
+                binding.sectionMaterial to true,
+                binding.sectionAppearance to true,
+                binding.groupFffTemperatures to true, // Moved up, temps useful
+                binding.sectionTagsCerts to true,
+                binding.sectionUrl to true,           // URL visible in swatch mode
+                // Hidden:
+                binding.sectionWeights to false,
+                binding.sectionPhysical to false,
+                binding.groupFffContainer to false,
+                binding.groupSlaFields to false,
+                binding.sectionDates to false,
+                binding.cardAdvanced to false
+            )
+        }
+    }
+
+    private fun applyProfile(profile: UsageProfile) {
+        currentProfile = profile
+        val container = binding.mainFormContainer
+        val config = getSectionConfig(profile)
+
+        // Remove all section views from container (keep profile selector)
+        val sections = config.map { it.first }
+        sections.forEach { container.removeView(it) }
+
+        // Re-add in order, setting visibility
+        config.forEach { (view, visible) ->
+            view.visibility = if (visible) View.VISIBLE else View.GONE
+            container.addView(view)
+        }
+
+        // Handle per-field visibility within Identity section
+        if (profile == UsageProfile.SWATCH_STICKER) {
+            binding.layoutGtin.visibility = View.GONE
+            binding.layoutCountryOfOrigin.visibility = View.GONE
+        } else {
+            binding.layoutGtin.visibility = View.VISIBLE
+            binding.layoutCountryOfOrigin.visibility = View.VISIBLE
+        }
+
+        // Re-apply material class visibility on top
+        updateFieldVisibilityForMaterialClass()
     }
 
     private fun setupColorPickers() {
@@ -422,6 +515,22 @@ class GeneratorActivity : AppCompatActivity() {
             updateColorButtonFromText(text?.toString(), button)
             onColorChanged(text?.toString()?.takeIf { it.length == 6 })
         }
+    }
+
+    private fun setupCollapsibleSections() {
+        // Secondary colors collapsible
+        binding.headerSecondaryColors.setOnClickListener {
+            isSecondaryColorsExpanded = !isSecondaryColorsExpanded
+            updateSecondaryColorsExpansion()
+        }
+    }
+
+    private fun updateSecondaryColorsExpansion() {
+        binding.contentSecondaryColors.visibility = if (isSecondaryColorsExpanded) View.VISIBLE else View.GONE
+        binding.iconExpandSecondaryColors.animate()
+            .rotation(if (isSecondaryColorsExpanded) 180f else 0f)
+            .setDuration(200)
+            .start()
     }
 
     private fun showColorPicker(
@@ -782,6 +891,13 @@ class GeneratorActivity : AppCompatActivity() {
         main.secondary_color_2?.let { setSecondaryColor(it, binding.getSecondaryColor2, binding.colorButton2) { secondaryColor2Hex = it } }
         main.secondary_color_3?.let { setSecondaryColor(it, binding.getSecondaryColor3, binding.colorButton3) { secondaryColor3Hex = it } }
         main.secondary_color_4?.let { setSecondaryColor(it, binding.getSecondaryColor4, binding.colorButton4) { secondaryColor4Hex = it } }
+
+        // Expand secondary colors section if any are set
+        if (listOf(main.secondary_color_0, main.secondary_color_1, main.secondary_color_2,
+                   main.secondary_color_3, main.secondary_color_4).any { !it.isNullOrBlank() }) {
+            isSecondaryColorsExpanded = true
+            updateSecondaryColorsExpansion()
+        }
 
         // Weights
         main.nominal_netto_full_weight?.let { binding.getNominalWeight.setText(it.toString()) }
