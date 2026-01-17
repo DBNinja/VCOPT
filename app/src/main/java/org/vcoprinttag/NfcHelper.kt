@@ -3,6 +3,7 @@ package org.vcoprinttag
 import android.nfc.Tag
 import android.nfc.tech.NfcA
 import android.nfc.tech.NfcV
+import android.util.Log
 import java.io.IOException
 import kotlin.math.min
 
@@ -24,6 +25,7 @@ class NfcHelper(private val tag: Tag) {
             Tech.NfcV -> readNfcVFull()
             else -> throw IOException("Unsupported tag tech")
         }
+        if (raw.isEmpty()) throw IOException("Failed to read any data from tag")
         return trimAtNdefTerminator(raw)
     }
 
@@ -137,7 +139,7 @@ class NfcHelper(private val tag: Tag) {
             if (blockOffset > 0) {
                 // Read current block
                 val readCmd = ByteArray(2 + uid.size + 1)
-                readCmd[0] = 0x22  // Address flag (0x20) + high data rate (0x02)
+                readCmd[0] = 0x20  // Address flag only (standard data rate for compatibility)
                 readCmd[1] = 0x20.toByte()  // READ_SINGLE_BLOCK command
                 System.arraycopy(uid, 0, readCmd, 2, uid.size)
                 readCmd[2 + uid.size] = currentBlock.toByte()
@@ -151,7 +153,7 @@ class NfcHelper(private val tag: Tag) {
 
                 // Write merged block
                 val writeCmd = ByteArray(2 + uid.size + 1 + blockSize)
-                writeCmd[0] = 0x22
+                writeCmd[0] = 0x20  // Address flag only (standard data rate for compatibility)
                 writeCmd[1] = 0x21.toByte()
                 System.arraycopy(uid, 0, writeCmd, 2, uid.size)
                 writeCmd[2 + uid.size] = currentBlock.toByte()
@@ -169,7 +171,7 @@ class NfcHelper(private val tag: Tag) {
                 System.arraycopy(data, dataIndex, toWrite, 0, len)
 
                 val cmd = ByteArray(2 + uid.size + 1 + blockSize)
-                cmd[0] = 0x22
+                cmd[0] = 0x20  // Address flag only (standard data rate for compatibility)
                 cmd[1] = 0x21.toByte()
                 System.arraycopy(uid, 0, cmd, 2, uid.size)
                 cmd[2 + uid.size] = currentBlock.toByte()
@@ -232,26 +234,32 @@ class NfcHelper(private val tag: Tag) {
 
     private fun readNfcVFull(): ByteArray {
         val nfcV = NfcV.get(tag) ?: throw IOException("NfcV not available")
+        Log.d("NfcHelper", "Starting NFC-V read, UID: ${tag.id.joinToString("") { "%02X".format(it) }}")
         nfcV.connect()
         try {
             val uid = tag.id.reversedArray()
             val blocks = mutableListOf<Byte>()
             for (blockNum in 0 until 129) {
                 try {
-                    val flags: Byte = 0x22  // Address flag (0x20) + high data rate (0x02)
+                    val flags: Byte = 0x20  // Address flag only (standard data rate for compatibility)
                     val cmd = ByteArray(2 + uid.size + 1)
                     cmd[0] = flags
                     cmd[1] = 0x20.toByte()  // READ_SINGLE_BLOCK command
                     System.arraycopy(uid, 0, cmd, 2, uid.size)
                     cmd[2 + uid.size] = blockNum.toByte()
                     val resp = nfcV.transceive(cmd)
-                    if (resp.size < 2) break
+                    if (resp.size < 2) {
+                        Log.w("NfcHelper", "Short response at block $blockNum: ${resp.size} bytes")
+                        break
+                    }
                     val blockData = resp.copyOfRange(1, resp.size)
                     blocks.addAll(blockData.toList())
                 } catch (e: Exception) {
+                    Log.w("NfcHelper", "Failed at block $blockNum: ${e.message}")
                     break
                 }
             }
+            Log.d("NfcHelper", "Read ${blocks.size} bytes total from NFC-V tag")
             return blocks.toByteArray()
         } finally {
             try { nfcV.close() } catch (ignored: Exception) {}
@@ -270,7 +278,7 @@ class NfcHelper(private val tag: Tag) {
                 val toWrite = ByteArray(blockSize) { 0x00 }
                 val len = min(blockSize, data.size - offset)
                 System.arraycopy(data, offset, toWrite, 0, len)
-                val flags: Byte = 0x22
+                val flags: Byte = 0x20  // Address flag only (standard data rate for compatibility)
                 val cmdCode: Byte = 0x21
                 val cmd = ByteArray(2 + uid.size + 1 + blockSize)
                 cmd[0] = flags
