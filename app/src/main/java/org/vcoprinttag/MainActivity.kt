@@ -1,7 +1,6 @@
 package org.vcoprinttag
 
 import android.app.Activity
-import android.app.PendingIntent
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.net.Uri
@@ -31,7 +30,7 @@ import org.vcoprinttag.model.Serializer
 import org.vcoprinttag.ui.TagDataAdapter
 import org.vcoprinttag.ui.TagDisplayBuilder
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
 
     private lateinit var binding: ActivityMainBinding
     private var nfcAdapter: NfcAdapter? = null
@@ -49,12 +48,9 @@ class MainActivity : AppCompatActivity() {
     // Tag data adapter
     private lateinit var tagDataAdapter: TagDataAdapter
 
-    // Tech list array for NFC foreground dispatch
-    private val techListsArray = arrayOf(
-        arrayOf(android.nfc.tech.NfcA::class.java.name),
-        arrayOf(android.nfc.tech.NfcV::class.java.name),
-        arrayOf(android.nfc.tech.Ndef::class.java.name)
-    )
+    // NFC Reader Mode flags
+    private val readerModeFlags = NfcAdapter.FLAG_READER_NFC_A or
+            NfcAdapter.FLAG_READER_NFC_V
 
     // Enum maps for deserialization (loaded lazily)
     private var classMap: Map<String, Int> = emptyMap()
@@ -512,19 +508,94 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        val intent = Intent(this, javaClass).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_MUTABLE)
-        nfcAdapter?.enableForegroundDispatch(this, pendingIntent, null, techListsArray)
+        nfcAdapter?.enableReaderMode(this, this, readerModeFlags, null)
+        Log.d("NFC", "Reader mode enabled")
     }
 
     override fun onPause() {
         super.onPause()
-        nfcAdapter?.disableForegroundDispatch(this)
+        nfcAdapter?.disableReaderMode(this)
+        Log.d("NFC", "Reader mode disabled")
     }
 
+    // NfcAdapter.ReaderCallback implementation
+    override fun onTagDiscovered(tag: Tag) {
+        Log.d("NFC", "onTagDiscovered called")
+        runOnUiThread {
+            handleTagDiscovered(tag)
+        }
+    }
+
+    private fun handleTagDiscovered(tag: Tag) {
+        detectedTag = tag
+
+        when {
+            isAuxWriteMode -> {
+                // Partial aux write mode
+                binding.progressBar.visibility = View.VISIBLE
+                lifecycleScope.launch {
+                    try {
+                        val success = writeAuxToTag(tag)
+                        withContext(Dispatchers.Main) {
+                            binding.progressBar.visibility = View.GONE
+                            if (success) {
+                                Toast.makeText(this@MainActivity, R.string.toast_aux_update_complete, Toast.LENGTH_SHORT).show()
+                                isAuxWriteMode = false
+                                pendingAuxData = null
+                                pendingAuxOffset = -1
+                                updateModeIndicator()
+                                // Re-read tag to show updated data
+                                readAndDisplayTag(tag)
+                            } else {
+                                Toast.makeText(this@MainActivity, R.string.toast_aux_update_failed, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("NFC", "Aux write failed", e)
+                        withContext(Dispatchers.Main) {
+                            binding.progressBar.visibility = View.GONE
+                            binding.tvStatus.text = getString(R.string.error_nfc_operation_failed, e.message ?: "Unknown error")
+                            Toast.makeText(this@MainActivity, R.string.toast_aux_update_failed, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+            isWriteMode -> {
+                binding.progressBar.visibility = View.VISIBLE
+                lifecycleScope.launch {
+                    try {
+                        val success = writeMemoryToTag(tag)
+                        withContext(Dispatchers.Main) {
+                            binding.progressBar.visibility = View.GONE
+                            if (success) {
+                                Toast.makeText(this@MainActivity, R.string.toast_write_complete, Toast.LENGTH_SHORT).show()
+                                isWriteMode = false
+                                updateModeIndicator()
+                            } else {
+                                Toast.makeText(this@MainActivity, R.string.toast_write_failed, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("NFC", "Write failed", e)
+                        withContext(Dispatchers.Main) {
+                            binding.progressBar.visibility = View.GONE
+                            binding.tvStatus.text = getString(R.string.error_nfc_operation_failed, e.message ?: "Unknown error")
+                            Toast.makeText(this@MainActivity, R.string.toast_write_failed, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+            else -> {
+                readAndDisplayTag(tag)
+            }
+        }
+    }
+
+    // Handle NFC intents for cold starts (app launched via NFC)
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        setIntent(intent)  // Update the activity's intent
+        Log.d("NFC", "onNewIntent called with action: ${intent.action}")
+        setIntent(intent)
         handleNfcIntent(intent)
     }
 
@@ -533,73 +604,10 @@ class MainActivity : AppCompatActivity() {
             NfcAdapter.ACTION_TECH_DISCOVERED == intent.action ||
             NfcAdapter.ACTION_NDEF_DISCOVERED == intent.action) {
 
+            Log.d("NFC", "handleNfcIntent processing NFC action: ${intent.action}")
             @Suppress("DEPRECATION")
             val tag: Tag? = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG)
-
-            tag?.let {
-                detectedTag = it
-
-                when {
-                    isAuxWriteMode -> {
-                        // Partial aux write mode
-                        binding.progressBar.visibility = View.VISIBLE
-                        lifecycleScope.launch {
-                            try {
-                                val success = writeAuxToTag(it)
-                                withContext(Dispatchers.Main) {
-                                    binding.progressBar.visibility = View.GONE
-                                    if (success) {
-                                        Toast.makeText(this@MainActivity, R.string.toast_aux_update_complete, Toast.LENGTH_SHORT).show()
-                                        isAuxWriteMode = false
-                                        pendingAuxData = null
-                                        pendingAuxOffset = -1
-                                        updateModeIndicator()
-                                        // Re-read tag to show updated data
-                                        readAndDisplayTag(it)
-                                    } else {
-                                        Toast.makeText(this@MainActivity, R.string.toast_aux_update_failed, Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                Log.e("NFC", "Aux write failed", e)
-                                withContext(Dispatchers.Main) {
-                                    binding.progressBar.visibility = View.GONE
-                                    binding.tvStatus.text = getString(R.string.error_nfc_operation_failed, e.message ?: "Unknown error")
-                                    Toast.makeText(this@MainActivity, R.string.toast_aux_update_failed, Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        }
-                    }
-                    isWriteMode -> {
-                        binding.progressBar.visibility = View.VISIBLE
-                        lifecycleScope.launch {
-                            try {
-                                val success = writeMemoryToTag(it)
-                                withContext(Dispatchers.Main) {
-                                    binding.progressBar.visibility = View.GONE
-                                    if (success) {
-                                        Toast.makeText(this@MainActivity, R.string.toast_write_complete, Toast.LENGTH_SHORT).show()
-                                        isWriteMode = false
-                                        updateModeIndicator()
-                                    } else {
-                                        Toast.makeText(this@MainActivity, R.string.toast_write_failed, Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                Log.e("NFC", "Write failed", e)
-                                withContext(Dispatchers.Main) {
-                                    binding.progressBar.visibility = View.GONE
-                                    binding.tvStatus.text = getString(R.string.error_nfc_operation_failed, e.message ?: "Unknown error")
-                                    Toast.makeText(this@MainActivity, R.string.toast_write_failed, Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        }
-                    }
-                    else -> {
-                        readAndDisplayTag(it)
-                    }
-                }
-            }
+            tag?.let { handleTagDiscovered(it) }
         }
     }
 
