@@ -125,6 +125,7 @@ class NfcHelper(private val tag: Tag) {
 
     private fun writeNfcVAtOffset(byteOffset: Int, data: ByteArray): Boolean {
         val nfcV = NfcV.get(tag) ?: throw IOException("NfcV not available")
+        Log.d("NfcHelper", "Starting NFC-V write at offset $byteOffset, ${data.size} bytes")
         nfcV.connect()
         try {
             val uid = tag.id.reversedArray()
@@ -158,7 +159,13 @@ class NfcHelper(private val tag: Tag) {
                 System.arraycopy(uid, 0, writeCmd, 2, uid.size)
                 writeCmd[2 + uid.size] = currentBlock.toByte()
                 System.arraycopy(merged, 0, writeCmd, 3 + uid.size, blockSize)
-                nfcV.transceive(writeCmd)
+                val writeResp = nfcV.transceive(writeCmd)
+                // Check response for errors
+                if (writeResp.isEmpty() || (writeResp[0].toInt() and 0x01) != 0) {
+                    val errorCode = if (writeResp.size > 1) writeResp[1].toInt() and 0xFF else -1
+                    Log.e("NfcHelper", "Write failed at block $currentBlock (merge), error code: $errorCode")
+                    return false
+                }
 
                 dataIndex += bytesToCopy
                 currentBlock++
@@ -176,13 +183,21 @@ class NfcHelper(private val tag: Tag) {
                 System.arraycopy(uid, 0, cmd, 2, uid.size)
                 cmd[2 + uid.size] = currentBlock.toByte()
                 System.arraycopy(toWrite, 0, cmd, 3 + uid.size, blockSize)
-                nfcV.transceive(cmd)
+                val resp = nfcV.transceive(cmd)
+                // Check response for errors
+                if (resp.isEmpty() || (resp[0].toInt() and 0x01) != 0) {
+                    val errorCode = if (resp.size > 1) resp[1].toInt() and 0xFF else -1
+                    Log.e("NfcHelper", "Write failed at block $currentBlock, error code: $errorCode")
+                    return false
+                }
 
                 dataIndex += len
                 currentBlock++
             }
+            Log.d("NfcHelper", "Write at offset complete, ${currentBlock - startBlock} blocks written")
             return true
         } catch (e: IOException) {
+            Log.e("NfcHelper", "Write at offset exception: ${e.message}")
             e.printStackTrace()
             return false
         } finally {
@@ -268,6 +283,7 @@ class NfcHelper(private val tag: Tag) {
 
     private fun writeNfcVFull(data: ByteArray): Boolean {
         val nfcV = NfcV.get(tag) ?: throw IOException("NfcV not available")
+        Log.d("NfcHelper", "Starting NFC-V write, ${data.size} bytes, UID: ${tag.id.joinToString("") { "%02X".format(it) }}")
         nfcV.connect()
         try {
             val uid = tag.id.reversedArray()
@@ -287,11 +303,19 @@ class NfcHelper(private val tag: Tag) {
                 cmd[2 + uid.size] = blockNum.toByte()
                 System.arraycopy(toWrite, 0, cmd, 3 + uid.size, blockSize)
                 val resp = nfcV.transceive(cmd)
+                // Check response for errors (bit 0 of flags byte indicates error)
+                if (resp.isEmpty() || (resp[0].toInt() and 0x01) != 0) {
+                    val errorCode = if (resp.size > 1) resp[1].toInt() and 0xFF else -1
+                    Log.e("NfcHelper", "Write failed at block $blockNum, error code: $errorCode")
+                    return false
+                }
                 offset += len
                 blockNum += 1
             }
+            Log.d("NfcHelper", "Write complete, $blockNum blocks written")
             return true
         } catch (e: IOException) {
+            Log.e("NfcHelper", "Write exception: ${e.message}")
             e.printStackTrace()
             return false
         } finally {
