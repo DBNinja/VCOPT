@@ -710,6 +710,8 @@ class GeneratorActivity : AppCompatActivity() {
         main.max_chamber_temperature = binding.getMaxChamberTemp.text?.toString()?.toIntOrNull()
         main.preheat_temperature = binding.getPreheatTemp.text?.toString()?.toIntOrNull()
         main.chamber_temperature = binding.getChamberTemp.text?.toString()?.toIntOrNull()
+        main.drying_temperature = binding.getDryingTemp.text?.toString()?.toIntOrNull()
+        main.drying_time = binding.getDryingTime.text?.toString()?.toIntOrNull()
 
         // Container dimensions
         main.container_width = binding.getContainerWidth.text?.toString()?.toIntOrNull()
@@ -804,6 +806,8 @@ class GeneratorActivity : AppCompatActivity() {
         main.max_chamber_temperature?.let { binding.getMaxChamberTemp.setText(it.toString()) }
         main.preheat_temperature?.let { binding.getPreheatTemp.setText(it.toString()) }
         main.chamber_temperature?.let { binding.getChamberTemp.setText(it.toString()) }
+        main.drying_temperature?.let { binding.getDryingTemp.setText(it.toString()) }
+        main.drying_time?.let { binding.getDryingTime.setText(it.toString()) }
 
         // Container dimensions
         main.container_width?.let { binding.getContainerWidth.setText(it.toString()) }

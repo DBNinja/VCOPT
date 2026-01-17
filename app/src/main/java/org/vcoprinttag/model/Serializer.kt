@@ -329,6 +329,10 @@ class Serializer(
             if (certIds.isNotEmpty()) data[56] = certIds
         }
 
+        // === Drying Parameters (Keys 57-58) - FFF only ===
+        m.main.drying_temperature?.let { data[57] = it }
+        m.main.drying_time?.let { data[58] = it }
+
         return mapper.writeValueAsBytes(data)
     }
 
@@ -843,6 +847,10 @@ class Serializer(
 
         // === Country of Origin (Key 55) ===
         main.country_of_origin = node.get("55").asFlexibleString()
+
+        // === Drying Parameters (Keys 57-58) - FFF only ===
+        main.drying_temperature = node.get("57").asFlexibleInt()
+        main.drying_time = node.get("58").asFlexibleInt()
 
         // === Post-process enum values (reverse lookup) ===
         main.material_type = typeMap.entries.find {

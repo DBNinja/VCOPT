@@ -253,6 +253,10 @@ data class MainRegion(
 
     // === Country of Origin (Key 55) ===
     @SerialName("55") var country_of_origin: String? = null,
+
+    // === Drying Parameters (Keys 57-58) - FFF only ===
+    @SerialName("57") var drying_temperature: Int? = null,
+    @SerialName("58") var drying_time: Int? = null,
 )
 
 
