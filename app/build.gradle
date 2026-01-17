@@ -34,8 +34,8 @@ android {
         applicationId "org.vcoprinttag"
         minSdk 25
         targetSdk 35
-        versionCode 3
-        versionName "1.0.1"
+        versionCode 4
+        versionName "1.1.0"
     }
     // 2. Add this block to force Kotlin to match Java (outside the android block)
     kotlin {
