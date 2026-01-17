@@ -3,6 +3,8 @@ package org.vcoprinttag
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
+import android.text.method.LinkMovementMethod
+import androidx.core.text.HtmlCompat
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -62,6 +64,18 @@ data class CategoryMetadata(
     val display_name: String,
     val emoji: String
 )
+
+private val markdownLinkRegex = Regex("""\[([^\]]+)]\(([^)]+)\)""")
+
+private fun markdownToHtml(text: String): String {
+    return text
+        .replace(markdownLinkRegex) { match ->
+            val linkText = match.groupValues[1]
+            val url = match.groupValues[2]
+            """<a href="$url">$linkText</a>"""
+        }
+        .replace("\n", "<br/>")
+}
 
 class HintSpinnerAdapter(
     context: Context,
@@ -272,7 +286,11 @@ class GeneratorActivity : AppCompatActivity() {
                         name = (map["name"] as? String) ?: "",
                         category = (map["category"] as? String) ?: "",
                         display_name = (map["display_name"] as? String) ?: "",
-                        description = (map["description"] as? String) ?: "",
+                        description = when (val desc = map["description"]) {
+                            is String -> desc
+                            is List<*> -> desc.filterIsInstance<String>().joinToString("\n") { "• $it" }
+                            else -> ""
+                        },
                         implies = (map["implies"] as? List<String>) ?: emptyList(),
                         hints = (map["hints"] as? List<String>) ?: emptyList(),
                         deprecated = (map["deprecated"] as? String) ?: ""
@@ -297,7 +315,11 @@ class GeneratorActivity : AppCompatActivity() {
                         key = (map["key"] as? Int) ?: 0,
                         name = (map["name"] as? String) ?: "",
                         display_name = (map["display_name"] as? String) ?: "",
-                        description = (map["description"] as? String) ?: ""
+                        description = when (val desc = map["description"]) {
+                            is String -> desc
+                            is List<*> -> desc.filterIsInstance<String>().joinToString("\n") { "• $it" }
+                            else -> ""
+                        }
                     )
                 }
             }
@@ -588,7 +610,11 @@ class GeneratorActivity : AppCompatActivity() {
             } else if (holder is TagViewHolder && item is TagDisplayItem.TagRow) {
                 val tag = item.entry
                 holder.title.text = tag.display_name
-                holder.description.text = tag.description
+                holder.description.text = HtmlCompat.fromHtml(
+                    markdownToHtml(tag.description),
+                    HtmlCompat.FROM_HTML_MODE_COMPACT
+                )
+                holder.description.movementMethod = LinkMovementMethod.getInstance()
 
                 holder.checkBox.setOnCheckedChangeListener(null)
                 holder.checkBox.isChecked = currentSelectedTagKeys.contains(tag.key)
