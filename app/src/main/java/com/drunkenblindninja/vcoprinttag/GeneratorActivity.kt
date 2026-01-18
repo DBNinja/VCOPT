@@ -384,7 +384,8 @@ class GeneratorActivity : AppCompatActivity() {
 
         when (materialClass.uppercase()) {
             "SLA" -> {
-                // SLA: Show SLA fields, hide FFF-specific fields
+                // SLA: Show SLA fields, hide FFF-specific fields and material type
+                binding.layoutMaterialType.visibility = View.GONE
                 binding.groupFffPhysical.visibility = View.GONE
                 binding.groupFffTemperatures.visibility = View.GONE
                 binding.groupFffContainer.visibility = View.GONE
@@ -392,6 +393,7 @@ class GeneratorActivity : AppCompatActivity() {
             }
             "SLS" -> {
                 // SLS: Show temperatures (chamber temp relevant), hide filament-specific and SLA
+                binding.layoutMaterialType.visibility = View.VISIBLE
                 binding.groupFffPhysical.visibility = View.GONE
                 binding.groupFffTemperatures.visibility = View.VISIBLE
                 binding.groupFffContainer.visibility = View.GONE
@@ -399,6 +401,7 @@ class GeneratorActivity : AppCompatActivity() {
             }
             else -> { // FFF (default)
                 // FFF: Show FFF fields, hide SLA fields
+                binding.layoutMaterialType.visibility = View.VISIBLE
                 binding.groupFffPhysical.visibility = if (isSwatchMode) View.GONE else View.VISIBLE
                 binding.groupFffTemperatures.visibility = View.VISIBLE
                 binding.groupFffContainer.visibility = if (isSwatchMode) View.GONE else View.VISIBLE
