@@ -1,4 +1,4 @@
-package org.vcoprinttag
+package com.drunkenblindninja.vcoprinttag
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -31,10 +31,10 @@ import com.google.android.material.datepicker.MaterialDatePicker
 import com.skydoves.colorpickerview.ColorEnvelope
 import com.skydoves.colorpickerview.ColorPickerDialog
 import com.skydoves.colorpickerview.listeners.ColorEnvelopeListener
-import org.vcoprinttag.databinding.ActivityGeneratorBinding
-import org.vcoprinttag.model.OpenPrintTagModel
-import org.vcoprinttag.model.UrlRegion
-import org.vcoprinttag.model.Serializer
+import com.drunkenblindninja.vcoprinttag.databinding.ActivityGeneratorBinding
+import com.drunkenblindninja.vcoprinttag.model.OpenPrintTagModel
+import com.drunkenblindninja.vcoprinttag.model.UrlRegion
+import com.drunkenblindninja.vcoprinttag.model.Serializer
 import org.yaml.snakeyaml.Yaml
 import java.time.Instant
 import java.time.LocalDate

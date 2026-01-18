@@ -1,11 +1,11 @@
-package org.vcoprinttag
+package com.drunkenblindninja.vcoprinttag
 
 import org.junit.Assert.*
 import org.junit.Test
-import org.vcoprinttag.model.OpenPrintTagModel
-import org.vcoprinttag.model.MainRegion
-import org.vcoprinttag.model.AuxRegion
-import org.vcoprinttag.model.Serializer
+import com.drunkenblindninja.vcoprinttag.model.OpenPrintTagModel
+import com.drunkenblindninja.vcoprinttag.model.MainRegion
+import com.drunkenblindninja.vcoprinttag.model.AuxRegion
+import com.drunkenblindninja.vcoprinttag.model.Serializer
 
 class SerializerUnitTest {
 

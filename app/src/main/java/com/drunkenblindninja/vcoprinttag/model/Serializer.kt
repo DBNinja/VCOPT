@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalStdlibApi::class)
 
-package org.vcoprinttag.model
+package com.drunkenblindninja.vcoprinttag.model
 
 import android.util.Log
 import com.fasterxml.jackson.databind.JsonNode

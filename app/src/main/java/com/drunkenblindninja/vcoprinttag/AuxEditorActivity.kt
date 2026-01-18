@@ -1,4 +1,4 @@
-package org.vcoprinttag
+package com.drunkenblindninja.vcoprinttag
 
 import android.app.Activity
 import android.content.Intent
@@ -7,7 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.datepicker.MaterialDatePicker
-import org.vcoprinttag.databinding.ActivityAuxEditorBinding
+import com.drunkenblindninja.vcoprinttag.databinding.ActivityAuxEditorBinding
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId

@@ -1,4 +1,4 @@
-package org.vcoprinttag
+package com.drunkenblindninja.vcoprinttag
 
 import android.app.Activity
 import android.content.Intent
@@ -23,12 +23,12 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.vcoprinttag.databinding.ActivityMainBinding
-import org.vcoprinttag.model.OpenPrintTagModel
-import org.vcoprinttag.model.AuxRegion
-import org.vcoprinttag.model.Serializer
-import org.vcoprinttag.ui.TagDataAdapter
-import org.vcoprinttag.ui.TagDisplayBuilder
+import com.drunkenblindninja.vcoprinttag.databinding.ActivityMainBinding
+import com.drunkenblindninja.vcoprinttag.model.OpenPrintTagModel
+import com.drunkenblindninja.vcoprinttag.model.AuxRegion
+import com.drunkenblindninja.vcoprinttag.model.Serializer
+import com.drunkenblindninja.vcoprinttag.ui.TagDataAdapter
+import com.drunkenblindninja.vcoprinttag.ui.TagDisplayBuilder
 
 class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
 

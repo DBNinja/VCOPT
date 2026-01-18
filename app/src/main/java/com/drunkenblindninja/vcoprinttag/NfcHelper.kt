@@ -1,4 +1,4 @@
-package org.vcoprinttag
+package com.drunkenblindninja.vcoprinttag
 
 import android.nfc.Tag
 import android.nfc.tech.NfcA

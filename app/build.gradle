@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace "org.vcoprinttag"   // <-- add this
+    namespace "com.drunkenblindninja.vcoprinttag"
     compileSdk 35
 
     compileOptions {
@@ -31,13 +31,12 @@ android {
     }
 
     defaultConfig {
-        applicationId "org.vcoprinttag"
+        applicationId "com.drunkenblindninja.vcoprinttag"
         minSdk 25
         targetSdk 35
         versionCode 4
         versionName "1.1.0"
     }
-    // 2. Add this block to force Kotlin to match Java (outside the android block)
     kotlin {
         jvmToolchain(21)
     }

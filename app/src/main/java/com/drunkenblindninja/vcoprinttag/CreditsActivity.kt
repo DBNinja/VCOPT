@@ -1,4 +1,4 @@
-package org.vcoprinttag
+package com.drunkenblindninja.vcoprinttag
 
 import android.content.Intent
 import android.net.Uri
@@ -10,10 +10,10 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.chip.Chip
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import org.vcoprinttag.R
-import org.vcoprinttag.databinding.ActivityCreditsBinding
-import org.vcoprinttag.model.LibraryLicense
-import org.vcoprinttag.model.LicenseRepository
+import com.drunkenblindninja.vcoprinttag.R
+import com.drunkenblindninja.vcoprinttag.databinding.ActivityCreditsBinding
+import com.drunkenblindninja.vcoprinttag.model.LibraryLicense
+import com.drunkenblindninja.vcoprinttag.model.LicenseRepository
 
 class CreditsActivity : AppCompatActivity() {
 

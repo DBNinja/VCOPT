@@ -1,4 +1,4 @@
-package org.vcoprinttag.model
+package com.drunkenblindninja.vcoprinttag.model
 
 import android.content.Context
 

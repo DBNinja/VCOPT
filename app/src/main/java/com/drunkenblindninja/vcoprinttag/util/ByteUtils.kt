@@ -1,4 +1,4 @@
-package org.vcoprinttag.util
+package com.drunkenblindninja.vcoprinttag.util
 
 import java.nio.ByteBuffer
 import java.util.zip.CRC32

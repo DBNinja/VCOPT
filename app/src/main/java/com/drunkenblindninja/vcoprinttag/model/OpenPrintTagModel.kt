@@ -1,4 +1,4 @@
-package org.vcoprinttag.model
+package com.drunkenblindninja.vcoprinttag.model
 
 import java.time.LocalDate
 import java.time.ZoneOffset

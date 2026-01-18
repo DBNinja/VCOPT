@@ -1,6 +1,6 @@
-package org.vcoprinttag.ui
+package com.drunkenblindninja.vcoprinttag.ui
 
-import org.vcoprinttag.model.OpenPrintTagModel
+import com.drunkenblindninja.vcoprinttag.model.OpenPrintTagModel
 
 /**
  * Sealed class representing different types of display sections for tag data.
@@ -177,7 +177,7 @@ object TagDisplayBuilder {
         return items
     }
 
-    private fun buildPhysicalProperties(main: org.vcoprinttag.model.MainRegion, materialClass: String): List<TagDisplayItem> {
+    private fun buildPhysicalProperties(main: com.drunkenblindninja.vcoprinttag.model.MainRegion, materialClass: String): List<TagDisplayItem> {
         val props = mutableListOf<TagDisplayItem>()
 
         // Filament Diameter (FFF)
@@ -222,7 +222,7 @@ object TagDisplayBuilder {
         return props
     }
 
-    private fun buildTemperatureProperties(main: org.vcoprinttag.model.MainRegion): List<TagDisplayItem> {
+    private fun buildTemperatureProperties(main: com.drunkenblindninja.vcoprinttag.model.MainRegion): List<TagDisplayItem> {
         val props = mutableListOf<TagDisplayItem>()
 
         // Print Temperature Range
@@ -250,7 +250,7 @@ object TagDisplayBuilder {
         return props
     }
 
-    private fun buildSlaProperties(main: org.vcoprinttag.model.MainRegion): List<TagDisplayItem> {
+    private fun buildSlaProperties(main: com.drunkenblindninja.vcoprinttag.model.MainRegion): List<TagDisplayItem> {
         val props = mutableListOf<TagDisplayItem>()
 
         // Viscosity at different temperatures
@@ -271,7 +271,7 @@ object TagDisplayBuilder {
         return props
     }
 
-    private fun buildSpoolProperties(main: org.vcoprinttag.model.MainRegion): List<TagDisplayItem> {
+    private fun buildSpoolProperties(main: com.drunkenblindninja.vcoprinttag.model.MainRegion): List<TagDisplayItem> {
         val props = mutableListOf<TagDisplayItem>()
 
         // Spool dimensions
@@ -290,7 +290,7 @@ object TagDisplayBuilder {
         return props
     }
 
-    private fun buildMetadataProperties(main: org.vcoprinttag.model.MainRegion, url: String?): List<TagDisplayItem> {
+    private fun buildMetadataProperties(main: com.drunkenblindninja.vcoprinttag.model.MainRegion, url: String?): List<TagDisplayItem> {
         val props = mutableListOf<TagDisplayItem>()
 
         // GTIN
