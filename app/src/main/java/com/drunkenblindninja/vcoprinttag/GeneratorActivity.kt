@@ -66,8 +66,8 @@ data class CategoryMetadata(
 )
 
 enum class UsageProfile(val displayName: String) {
-    FULL_SPOOL("Full Spool"),
-    SWATCH_STICKER("Swatch / Sticker")
+    FULL_SPOOL("Profile: All fields"),
+    SWATCH_STICKER("Profile: Swatch")
 }
 
 private val markdownLinkRegex = Regex("""\[([^\]]+)]\(([^)]+)\)""")
@@ -408,15 +408,48 @@ class GeneratorActivity : AppCompatActivity() {
     }
 
     private fun setupProfileDropdown() {
-        val adapter = ArrayAdapter(
+        val adapter = object : ArrayAdapter<String>(
             this,
-            android.R.layout.simple_dropdown_item_1line,
+            android.R.layout.simple_spinner_item,
             UsageProfile.entries.map { it.displayName }
-        )
-        binding.dropdownUsageProfile.setAdapter(adapter)
-        binding.dropdownUsageProfile.setText(currentProfile.displayName, false)
-        binding.dropdownUsageProfile.setOnItemClickListener { _, _, position, _ ->
-            applyProfile(UsageProfile.entries[position])
+        ) {
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val view = super.getView(position, convertView, parent)
+                (view as TextView).apply {
+                    setTextColor(getThemeColor(com.google.android.material.R.attr.colorOnPrimaryContainer))
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+                }
+                return view
+            }
+
+            override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val view = super.getDropDownView(position, convertView, parent)
+                (view as TextView).apply {
+                    setTextColor(getThemeColor(com.google.android.material.R.attr.colorOnSurface))
+                    setPadding(32, 24, 32, 24)
+                }
+                return view
+            }
+        }
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spinnerUsageProfile.adapter = adapter
+        binding.spinnerUsageProfile.setSelection(UsageProfile.entries.indexOf(currentProfile))
+        binding.spinnerUsageProfile.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                applyProfile(UsageProfile.entries[position])
+            }
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+        }
+
+        // Make the entire container clickable
+        binding.profileSelectorContainer.setOnClickListener {
+            binding.spinnerUsageProfile.performClick()
+        }
+
+        // Intercept touches on spinner to trigger container's ripple
+        binding.spinnerUsageProfile.setOnTouchListener { _, event ->
+            binding.profileSelectorContainer.onTouchEvent(event)
+            false
         }
     }
 
@@ -496,21 +529,22 @@ class GeneratorActivity : AppCompatActivity() {
         }
 
         // Secondary color pickers
-        setupSecondaryColorPicker(binding.colorButton0, binding.getSecondaryColor0) { hex -> secondaryColor0Hex = hex }
-        setupSecondaryColorPicker(binding.colorButton1, binding.getSecondaryColor1) { hex -> secondaryColor1Hex = hex }
-        setupSecondaryColorPicker(binding.colorButton2, binding.getSecondaryColor2) { hex -> secondaryColor2Hex = hex }
-        setupSecondaryColorPicker(binding.colorButton3, binding.getSecondaryColor3) { hex -> secondaryColor3Hex = hex }
-        setupSecondaryColorPicker(binding.colorButton4, binding.getSecondaryColor4) { hex -> secondaryColor4Hex = hex }
+        setupSecondaryColorPicker(binding.rowSecondaryColor0, binding.colorButton0, binding.getSecondaryColor0) { hex -> secondaryColor0Hex = hex }
+        setupSecondaryColorPicker(binding.rowSecondaryColor1, binding.colorButton1, binding.getSecondaryColor1) { hex -> secondaryColor1Hex = hex }
+        setupSecondaryColorPicker(binding.rowSecondaryColor2, binding.colorButton2, binding.getSecondaryColor2) { hex -> secondaryColor2Hex = hex }
+        setupSecondaryColorPicker(binding.rowSecondaryColor3, binding.colorButton3, binding.getSecondaryColor3) { hex -> secondaryColor3Hex = hex }
+        setupSecondaryColorPicker(binding.rowSecondaryColor4, binding.colorButton4, binding.getSecondaryColor4) { hex -> secondaryColor4Hex = hex }
     }
 
     private fun setupSecondaryColorPicker(
+        row: View,
         button: Button,
         editText: com.google.android.material.textfield.TextInputEditText,
         onColorChanged: (String?) -> Unit
     ) {
-        button.setOnClickListener {
-            showColorPicker(editText, button, onColorChanged)
-        }
+        val openPicker = { showColorPicker(editText, button, onColorChanged) }
+        row.setOnClickListener { openPicker() }
+        button.setOnClickListener { openPicker() }
         editText.addTextChangedListener { text ->
             updateColorButtonFromText(text?.toString(), button)
             onColorChanged(text?.toString()?.takeIf { it.length == 6 })
@@ -518,8 +552,8 @@ class GeneratorActivity : AppCompatActivity() {
     }
 
     private fun setupCollapsibleSections() {
-        // Secondary colors collapsible
-        binding.headerSecondaryColors.setOnClickListener {
+        // Secondary colors collapsible - entire card is clickable
+        binding.cardSecondaryColors.setOnClickListener {
             isSecondaryColorsExpanded = !isSecondaryColorsExpanded
             updateSecondaryColorsExpansion()
         }
@@ -1001,5 +1035,11 @@ class GeneratorActivity : AppCompatActivity() {
             updateColorButtonFromText(hex, button)
             setter()
         }
+    }
+
+    private fun getThemeColor(attr: Int): Int {
+        val typedValue = TypedValue()
+        theme.resolveAttribute(attr, typedValue, true)
+        return typedValue.data
     }
 }
