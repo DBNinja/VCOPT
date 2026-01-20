@@ -1,6 +1,6 @@
 # VCOPT
 
-An Android app for reading, writing, and generating [OpenPrintTag](https://specs.openprinttag.org) NFC tags for 3D printing materials.
+An Android app for reading, writing, and generating [OpenPrintTag](https://openprinttag.org/) NFC tags for 3D printing materials.
 
 ## About
 
