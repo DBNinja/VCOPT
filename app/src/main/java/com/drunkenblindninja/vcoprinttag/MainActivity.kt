@@ -35,7 +35,6 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
     private lateinit var binding: ActivityMainBinding
     private var nfcAdapter: NfcAdapter? = null
     private var cachedTagData: ByteArray? = null
-    private var detectedTag: Tag? = null
     private var isWriteMode = false
     private var isAuxWriteMode = false  // For aux-only writes
     private var pendingAuxData: ByteArray? = null
@@ -527,8 +526,6 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
     }
 
     private fun handleTagDiscovered(tag: Tag) {
-        detectedTag = tag
-
         when {
             isAuxWriteMode -> {
                 // Partial aux write mode
@@ -649,7 +646,4 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
         return resultMap
     }
 
-    fun ByteArray.toHexString(): String {
-        return joinToString(" ") { "%02X".format(it) }
-    }
 }
