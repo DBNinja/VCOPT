@@ -2,10 +2,11 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id 'com.android.application'
-    id 'org.jetbrains.kotlin.android'  // Use full id
-    // Note: 2.0.0 is the current stable "major" for K2;
-    // ensure this matches whatever 2.x version you've set in your environment
-    id 'org.jetbrains.kotlin.plugin.serialization' // Must match your Kotlin version
+    id 'org.jetbrains.kotlin.plugin.serialization'
+}
+
+kotlin {
+    jvmToolchain(21)
 }
 
 android {
@@ -37,10 +38,6 @@ android {
         versionCode 4
         versionName "1.1.0"
     }
-    kotlin {
-        jvmToolchain(21)
-    }
-
     signingConfigs {
         release {
             storeFile file('../release-keystore.jks')
@@ -69,7 +66,7 @@ android {
 
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.2.0"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.2.10"
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-core:1.7.3"
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-cbor:1.7.3"
 
@@ -89,7 +86,7 @@ dependencies {
 
     // Test dependencies
     testImplementation 'junit:junit:4.13.2'
-    testImplementation "org.jetbrains.kotlin:kotlin-reflect:2.2.0"
+    testImplementation "org.jetbrains.kotlin:kotlin-reflect:2.2.10"
     androidTestImplementation 'androidx.test:runner:1.7.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
 }
