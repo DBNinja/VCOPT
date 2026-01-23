@@ -156,7 +156,7 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
     }
 
     companion object {
-        const val SPEC_SIZE_LIMIT = 312
+        const val SPEC_SIZE_LIMIT = 316
         const val HARD_SIZE_LIMIT = 504
     }
 

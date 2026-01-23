@@ -41,7 +41,7 @@ class Serializer(
     private val mapper = ObjectMapper(CBORFactory())
 
     companion object {
-        const val SPEC_SIZE_LIMIT = 312
+        const val SPEC_SIZE_LIMIT = 316
     }
 
     fun serialize(model: OpenPrintTagModel, reserveAuxSpace: Boolean = false): ByteArray {
