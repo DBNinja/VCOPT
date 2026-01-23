@@ -12,6 +12,7 @@ class NfcHelper(private val tag: Tag) {
     enum class Tech { NfcA, NfcV, Unknown }
 
     fun detectTech(): Tech {
+        Log.d("NfcHelper", "Tag techs: ${tag.techList.joinToString()}")
         return when {
             tag.techList.contains("android.nfc.tech.NfcA") -> Tech.NfcA
             tag.techList.contains("android.nfc.tech.NfcV") -> Tech.NfcV
@@ -169,6 +170,8 @@ class NfcHelper(private val tag: Tag) {
 
                 dataIndex += bytesToCopy
                 currentBlock++
+                // Small delay for Samsung device compatibility
+                Thread.sleep(5)
             }
 
             // Write remaining full blocks
@@ -193,6 +196,8 @@ class NfcHelper(private val tag: Tag) {
 
                 dataIndex += len
                 currentBlock++
+                // Small delay for Samsung device compatibility
+                Thread.sleep(5)
             }
             Log.d("NfcHelper", "Write at offset complete, ${currentBlock - startBlock} blocks written")
             return true
@@ -211,9 +216,37 @@ class NfcHelper(private val tag: Tag) {
         try {
             val startPage = 4
             val endPage = 129
-            val cmd = byteArrayOf(0x3A.toByte(), startPage.toByte(), endPage.toByte())
-            val resp = nfcA.transceive(cmd)
-            return resp
+
+            // Try FAST_READ first (0x3A) - not supported on all devices/tags
+            try {
+                val cmd = byteArrayOf(0x3A.toByte(), startPage.toByte(), endPage.toByte())
+                val resp = nfcA.transceive(cmd)
+                if (resp.isNotEmpty()) {
+                    return resp
+                }
+            } catch (e: IOException) {
+                Log.d("NfcHelper", "FAST_READ not supported, falling back to page-by-page read")
+            }
+
+            // Fallback: read page by page (better compatibility with Samsung devices)
+            val pageSize = 4
+            val result = mutableListOf<Byte>()
+            for (page in startPage..endPage) {
+                try {
+                    val cmd = byteArrayOf(0x30.toByte(), page.toByte())
+                    val resp = nfcA.transceive(cmd)
+                    // READ command returns 16 bytes (4 pages), we only want the first 4
+                    if (resp.size >= pageSize) {
+                        result.addAll(resp.take(pageSize))
+                    } else {
+                        break
+                    }
+                } catch (e: IOException) {
+                    Log.w("NfcHelper", "Read failed at page $page: ${e.message}")
+                    break
+                }
+            }
+            return result.toByteArray()
         } finally {
             try { nfcA.close() } catch (ignored: Exception) {}
         }
@@ -311,6 +344,8 @@ class NfcHelper(private val tag: Tag) {
                 }
                 offset += len
                 blockNum += 1
+                // Small delay between writes for Samsung device compatibility
+                Thread.sleep(5)
             }
             Log.d("NfcHelper", "Write complete, $blockNum blocks written")
             return true

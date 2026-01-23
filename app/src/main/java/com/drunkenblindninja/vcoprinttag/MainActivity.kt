@@ -48,8 +48,15 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
     private lateinit var tagDataAdapter: TagDataAdapter
 
     // NFC Reader Mode flags
+    // FLAG_READER_SKIP_NDEF_CHECK improves compatibility with Samsung devices
     private val readerModeFlags = NfcAdapter.FLAG_READER_NFC_A or
-            NfcAdapter.FLAG_READER_NFC_V
+            NfcAdapter.FLAG_READER_NFC_V or
+            NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK
+
+    // Reader mode extras bundle - presence check delay helps with Samsung devices
+    private val readerModeExtras = Bundle().apply {
+        putInt(NfcAdapter.EXTRA_READER_PRESENCE_CHECK_DELAY, 250)
+    }
 
     // Enum maps for deserialization (loaded lazily)
     private var classMap: Map<String, Int> = emptyMap()
@@ -193,6 +200,16 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         if (nfcAdapter == null) {
             Toast.makeText(this, R.string.error_nfc_not_available, Toast.LENGTH_LONG).show()
+        } else if (!nfcAdapter!!.isEnabled) {
+            // Prompt user to enable NFC
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.dialog_title_nfc_disabled)
+                .setMessage(R.string.dialog_message_nfc_disabled)
+                .setPositiveButton(R.string.dialog_btn_settings) { _, _ ->
+                    startActivity(Intent(android.provider.Settings.ACTION_NFC_SETTINGS))
+                }
+                .setNegativeButton(R.string.dialog_btn_cancel, null)
+                .show()
         }
 
         // Setup click listeners
@@ -507,8 +524,8 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
 
     override fun onResume() {
         super.onResume()
-        nfcAdapter?.enableReaderMode(this, this, readerModeFlags, null)
-        Log.d("NFC", "Reader mode enabled")
+        nfcAdapter?.enableReaderMode(this, this, readerModeFlags, readerModeExtras)
+        Log.d("NFC", "Reader mode enabled with flags: $readerModeFlags")
     }
 
     override fun onPause() {
