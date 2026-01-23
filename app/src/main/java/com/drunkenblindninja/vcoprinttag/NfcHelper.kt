@@ -129,7 +129,9 @@ class NfcHelper(private val tag: Tag) {
         Log.d("NfcHelper", "Starting NFC-V write at offset $byteOffset, ${data.size} bytes")
         nfcV.connect()
         try {
-            val uid = tag.id.reversedArray()
+            // Small delay after connect to let the tag stabilize
+            Thread.sleep(50)
+
             val blockSize = 4
             val startBlock = byteOffset / blockSize
             val blockOffset = byteOffset % blockSize
@@ -139,12 +141,12 @@ class NfcHelper(private val tag: Tag) {
 
             // If starting mid-block, read-modify-write
             if (blockOffset > 0) {
-                // Read current block
-                val readCmd = ByteArray(2 + uid.size + 1)
-                readCmd[0] = 0x20  // Address flag only (standard data rate for compatibility)
-                readCmd[1] = 0x20.toByte()  // READ_SINGLE_BLOCK command
-                System.arraycopy(uid, 0, readCmd, 2, uid.size)
-                readCmd[2 + uid.size] = currentBlock.toByte()
+                // Read current block using non-addressed mode
+                val readCmd = byteArrayOf(
+                    0x02,  // Flags: high data rate, non-addressed
+                    0x20,  // READ_SINGLE_BLOCK command
+                    currentBlock.toByte()
+                )
                 val resp = nfcV.transceive(readCmd)
                 val currentData = resp.copyOfRange(1, resp.size)
 
@@ -153,13 +155,12 @@ class NfcHelper(private val tag: Tag) {
                 val bytesToCopy = min(blockSize - blockOffset, data.size)
                 System.arraycopy(data, 0, merged, blockOffset, bytesToCopy)
 
-                // Write merged block
-                val writeCmd = ByteArray(2 + uid.size + 1 + blockSize)
-                writeCmd[0] = 0x20  // Address flag only (standard data rate for compatibility)
-                writeCmd[1] = 0x21.toByte()
-                System.arraycopy(uid, 0, writeCmd, 2, uid.size)
-                writeCmd[2 + uid.size] = currentBlock.toByte()
-                System.arraycopy(merged, 0, writeCmd, 3 + uid.size, blockSize)
+                // Write merged block using non-addressed mode
+                val writeCmd = ByteArray(3 + blockSize)
+                writeCmd[0] = 0x02  // Flags: high data rate, non-addressed
+                writeCmd[1] = 0x21  // WRITE_SINGLE_BLOCK command
+                writeCmd[2] = currentBlock.toByte()
+                System.arraycopy(merged, 0, writeCmd, 3, blockSize)
                 val writeResp = nfcV.transceive(writeCmd)
                 // Check response for errors
                 if (writeResp.isEmpty() || (writeResp[0].toInt() and 0x01) != 0) {
@@ -170,7 +171,7 @@ class NfcHelper(private val tag: Tag) {
 
                 dataIndex += bytesToCopy
                 currentBlock++
-                // Small delay for Samsung device compatibility
+                // Small delay for device compatibility
                 Thread.sleep(5)
             }
 
@@ -180,12 +181,12 @@ class NfcHelper(private val tag: Tag) {
                 val len = min(blockSize, data.size - dataIndex)
                 System.arraycopy(data, dataIndex, toWrite, 0, len)
 
-                val cmd = ByteArray(2 + uid.size + 1 + blockSize)
-                cmd[0] = 0x20  // Address flag only (standard data rate for compatibility)
-                cmd[1] = 0x21.toByte()
-                System.arraycopy(uid, 0, cmd, 2, uid.size)
-                cmd[2 + uid.size] = currentBlock.toByte()
-                System.arraycopy(toWrite, 0, cmd, 3 + uid.size, blockSize)
+                // Use non-addressed mode
+                val cmd = ByteArray(3 + blockSize)
+                cmd[0] = 0x02  // Flags: high data rate, non-addressed
+                cmd[1] = 0x21  // WRITE_SINGLE_BLOCK command
+                cmd[2] = currentBlock.toByte()
+                System.arraycopy(toWrite, 0, cmd, 3, blockSize)
                 val resp = nfcV.transceive(cmd)
                 // Check response for errors
                 if (resp.isEmpty() || (resp[0].toInt() and 0x01) != 0) {
@@ -196,7 +197,7 @@ class NfcHelper(private val tag: Tag) {
 
                 dataIndex += len
                 currentBlock++
-                // Small delay for Samsung device compatibility
+                // Small delay for device compatibility
                 Thread.sleep(5)
             }
             Log.d("NfcHelper", "Write at offset complete, ${currentBlock - startBlock} blocks written")
@@ -285,25 +286,53 @@ class NfcHelper(private val tag: Tag) {
         Log.d("NfcHelper", "Starting NFC-V read, UID: ${tag.id.joinToString("") { "%02X".format(it) }}")
         nfcV.connect()
         try {
-            val uid = tag.id.reversedArray()
+            // Small delay after connect to let the tag stabilize
+            Thread.sleep(50)
+
+            // Get tag info to determine number of blocks
+            val numBlocks = getTagBlockCount(nfcV)
+            Log.d("NfcHelper", "Tag has $numBlocks blocks")
+
             val blocks = mutableListOf<Byte>()
-            for (blockNum in 0 until 129) {
-                try {
-                    val flags: Byte = 0x20  // Address flag only (standard data rate for compatibility)
-                    val cmd = ByteArray(2 + uid.size + 1)
-                    cmd[0] = flags
-                    cmd[1] = 0x20.toByte()  // READ_SINGLE_BLOCK command
-                    System.arraycopy(uid, 0, cmd, 2, uid.size)
-                    cmd[2 + uid.size] = blockNum.toByte()
-                    val resp = nfcV.transceive(cmd)
-                    if (resp.size < 2) {
-                        Log.w("NfcHelper", "Short response at block $blockNum: ${resp.size} bytes")
-                        break
+            for (blockNum in 0 until numBlocks) {
+                var retries = 3
+                var lastException: Exception? = null
+                while (retries > 0) {
+                    try {
+                        // Use non-addressed mode (0x02 = high data rate, single sub-carrier)
+                        // The tag is already selected by Android's RF activation
+                        val cmd = byteArrayOf(
+                            0x02,  // Flags: high data rate, non-addressed
+                            0x20,  // READ_SINGLE_BLOCK command
+                            blockNum.toByte()
+                        )
+                        val resp = nfcV.transceive(cmd)
+                        if (resp.isEmpty()) {
+                            throw IOException("Empty response")
+                        }
+                        // Check error flag (bit 0 of response flags)
+                        if ((resp[0].toInt() and 0x01) != 0) {
+                            val errorCode = if (resp.size > 1) resp[1].toInt() and 0xFF else -1
+                            throw IOException("Error response: $errorCode")
+                        }
+                        if (resp.size < 2) {
+                            Log.w("NfcHelper", "Short response at block $blockNum: ${resp.size} bytes")
+                            throw IOException("Short response")
+                        }
+                        val blockData = resp.copyOfRange(1, resp.size)
+                        blocks.addAll(blockData.toList())
+                        break  // Success, exit retry loop
+                    } catch (e: Exception) {
+                        lastException = e
+                        retries--
+                        if (retries > 0) {
+                            Log.d("NfcHelper", "Retry at block $blockNum, ${retries} attempts left: ${e.message}")
+                            Thread.sleep(20)
+                        }
                     }
-                    val blockData = resp.copyOfRange(1, resp.size)
-                    blocks.addAll(blockData.toList())
-                } catch (e: Exception) {
-                    Log.w("NfcHelper", "Failed at block $blockNum: ${e.message}")
+                }
+                if (retries == 0) {
+                    Log.w("NfcHelper", "Failed at block $blockNum after retries: ${lastException?.message}")
                     break
                 }
             }
@@ -314,12 +343,64 @@ class NfcHelper(private val tag: Tag) {
         }
     }
 
+    /**
+     * Get the number of blocks on an NFC-V tag using GET_SYSTEM_INFO command.
+     * Falls back to a default value if the command fails.
+     */
+    private fun getTagBlockCount(nfcV: NfcV): Int {
+        try {
+            // GET_SYSTEM_INFO command (0x2B) in non-addressed mode
+            val cmd = byteArrayOf(
+                0x02,  // Flags: high data rate, non-addressed
+                0x2B   // GET_SYSTEM_INFO command
+            )
+            val resp = nfcV.transceive(cmd)
+
+            if (resp.isEmpty() || (resp[0].toInt() and 0x01) != 0) {
+                Log.w("NfcHelper", "GET_SYSTEM_INFO failed, using default block count")
+                return 80  // Default fallback
+            }
+
+            // Parse response: flags (1) + info flags (1) + UID (8) + optional fields
+            // Info flags byte indicates which optional fields are present
+            val infoFlags = resp[1].toInt() and 0xFF
+            var offset = 2
+
+            // Skip UID if present (bit 0)
+            if ((infoFlags and 0x01) != 0) {
+                offset += 8
+            }
+            // Skip DSFID if present (bit 1)
+            if ((infoFlags and 0x02) != 0) {
+                offset += 1
+            }
+            // Skip AFI if present (bit 2)
+            if ((infoFlags and 0x04) != 0) {
+                offset += 1
+            }
+            // Number of blocks if present (bit 3) - value is (number of blocks - 1)
+            if ((infoFlags and 0x08) != 0 && offset < resp.size) {
+                val numBlocks = (resp[offset].toInt() and 0xFF) + 1
+                Log.d("NfcHelper", "GET_SYSTEM_INFO: $numBlocks blocks")
+                return numBlocks
+            }
+
+            Log.w("NfcHelper", "GET_SYSTEM_INFO response didn't include block count")
+            return 80  // Default fallback
+        } catch (e: Exception) {
+            Log.w("NfcHelper", "GET_SYSTEM_INFO exception: ${e.message}")
+            return 80  // Default fallback
+        }
+    }
+
     private fun writeNfcVFull(data: ByteArray): Boolean {
         val nfcV = NfcV.get(tag) ?: throw IOException("NfcV not available")
         Log.d("NfcHelper", "Starting NFC-V write, ${data.size} bytes, UID: ${tag.id.joinToString("") { "%02X".format(it) }}")
         nfcV.connect()
         try {
-            val uid = tag.id.reversedArray()
+            // Small delay after connect to let the tag stabilize
+            Thread.sleep(50)
+
             val blockSize = 4
             var blockNum = 0
             var offset = 0
@@ -327,14 +408,12 @@ class NfcHelper(private val tag: Tag) {
                 val toWrite = ByteArray(blockSize) { 0x00 }
                 val len = min(blockSize, data.size - offset)
                 System.arraycopy(data, offset, toWrite, 0, len)
-                val flags: Byte = 0x20  // Address flag only (standard data rate for compatibility)
-                val cmdCode: Byte = 0x21
-                val cmd = ByteArray(2 + uid.size + 1 + blockSize)
-                cmd[0] = flags
-                cmd[1] = cmdCode
-                System.arraycopy(uid, 0, cmd, 2, uid.size)
-                cmd[2 + uid.size] = blockNum.toByte()
-                System.arraycopy(toWrite, 0, cmd, 3 + uid.size, blockSize)
+                // Use non-addressed mode (0x02 = high data rate, single sub-carrier)
+                val cmd = ByteArray(3 + blockSize)
+                cmd[0] = 0x02  // Flags: high data rate, non-addressed
+                cmd[1] = 0x21  // WRITE_SINGLE_BLOCK command
+                cmd[2] = blockNum.toByte()
+                System.arraycopy(toWrite, 0, cmd, 3, blockSize)
                 val resp = nfcV.transceive(cmd)
                 // Check response for errors (bit 0 of flags byte indicates error)
                 if (resp.isEmpty() || (resp[0].toInt() and 0x01) != 0) {
@@ -344,7 +423,7 @@ class NfcHelper(private val tag: Tag) {
                 }
                 offset += len
                 blockNum += 1
-                // Small delay between writes for Samsung device compatibility
+                // Small delay between writes for device compatibility
                 Thread.sleep(5)
             }
             Log.d("NfcHelper", "Write complete, $blockNum blocks written")
