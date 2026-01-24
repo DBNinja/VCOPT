@@ -265,13 +265,13 @@ class Serializer(
         m.main.actual_netto_full_weight?.let { data[17] = it }
         m.main.empty_container_weight?.let { data[18] = it }
 
-        // === Colors (Keys 19-24) ===
-        m.main.primary_color?.takeIf { it.isNotBlank() }?.let { data[19] = it }
-        m.main.secondary_color_0?.takeIf { it.isNotBlank() }?.let { data[20] = it }
-        m.main.secondary_color_1?.takeIf { it.isNotBlank() }?.let { data[21] = it }
-        m.main.secondary_color_2?.takeIf { it.isNotBlank() }?.let { data[22] = it }
-        m.main.secondary_color_3?.takeIf { it.isNotBlank() }?.let { data[23] = it }
-        m.main.secondary_color_4?.takeIf { it.isNotBlank() }?.let { data[24] = it }
+        // === Colors (Keys 19-24) - stored as RGB(A) byte string ===
+        m.main.primary_color?.let { encodeColorToBytes(it)?.let { bytes -> data[19] = bytes } }
+        m.main.secondary_color_0?.let { encodeColorToBytes(it)?.let { bytes -> data[20] = bytes } }
+        m.main.secondary_color_1?.let { encodeColorToBytes(it)?.let { bytes -> data[21] = bytes } }
+        m.main.secondary_color_2?.let { encodeColorToBytes(it)?.let { bytes -> data[22] = bytes } }
+        m.main.secondary_color_3?.let { encodeColorToBytes(it)?.let { bytes -> data[23] = bytes } }
+        m.main.secondary_color_4?.let { encodeColorToBytes(it)?.let { bytes -> data[24] = bytes } }
 
         // === Optical Properties (Key 27) ===
         m.main.transmission_distance?.let { data[27] = it }
@@ -911,5 +911,52 @@ class Serializer(
         }
 
         return aux
+    }
+
+    /**
+     * Encode a color string (hex format like "FF5733" or "#FF5733" or "FF5733FF" for RGBA)
+     * to a CBOR byte string (3-4 bytes for RGB/RGBA).
+     * Returns null if the input is blank or invalid.
+     */
+    private fun encodeColorToBytes(colorString: String): ByteArray? {
+        val hex = colorString.trim().removePrefix("#")
+        if (hex.isBlank()) return null
+
+        return try {
+            when (hex.length) {
+                6 -> {
+                    // RGB: 3 bytes
+                    byteArrayOf(
+                        hex.substring(0, 2).toInt(16).toByte(),
+                        hex.substring(2, 4).toInt(16).toByte(),
+                        hex.substring(4, 6).toInt(16).toByte()
+                    )
+                }
+                8 -> {
+                    // RGBA: 4 bytes
+                    byteArrayOf(
+                        hex.substring(0, 2).toInt(16).toByte(),
+                        hex.substring(2, 4).toInt(16).toByte(),
+                        hex.substring(4, 6).toInt(16).toByte(),
+                        hex.substring(6, 8).toInt(16).toByte()
+                    )
+                }
+                else -> null
+            }
+        } catch (e: Exception) {
+            Log.w("Serializer", "Invalid color format: $colorString")
+            null
+        }
+    }
+
+    /**
+     * Decode a CBOR byte string (3-4 bytes) to a hex color string.
+     * Returns format like "FF5733" for RGB or "FF5733FF" for RGBA.
+     */
+    private fun decodeColorFromBytes(bytes: ByteArray): String? {
+        return when (bytes.size) {
+            3, 4 -> bytes.joinToString("") { "%02X".format(it) }
+            else -> null
+        }
     }
 }
