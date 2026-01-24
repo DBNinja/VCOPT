@@ -199,12 +199,12 @@ class OpenPrintTagModelTest {
     @Test
     fun test_mainRegion_filamentLength() {
         val mainRegion = MainRegion().apply {
-            nominal_full_length = 330000f  // mm (330m)
-            actual_full_length = 332000f   // mm
+            nominal_full_length = 330f  // meters (stored as 330000mm in CBOR)
+            actual_full_length = 332f   // meters (stored as 332000mm in CBOR)
         }
 
-        assertEquals(330000f, mainRegion.nominal_full_length!!, 0.01f)
-        assertEquals(332000f, mainRegion.actual_full_length!!, 0.01f)
+        assertEquals(330f, mainRegion.nominal_full_length!!, 0.01f)
+        assertEquals(332f, mainRegion.actual_full_length!!, 0.01f)
     }
 
     @Test

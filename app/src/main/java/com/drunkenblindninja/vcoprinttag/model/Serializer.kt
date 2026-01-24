@@ -316,9 +316,9 @@ class Serializer(
         // === Material Abbreviation (Key 52) ===
         m.main.material_abbreviation?.takeIf { it.isNotBlank() }?.let { data[52] = it }
 
-        // === Filament Length (Keys 53-54) ===
-        m.main.nominal_full_length?.let { data[53] = it }
-        m.main.actual_full_length?.let { data[54] = it }
+        // === Filament Length (Keys 53-54) - stored in mm, UI uses meters ===
+        m.main.nominal_full_length?.let { data[53] = it * 1000f }  // m → mm
+        m.main.actual_full_length?.let { data[54] = it * 1000f }   // m → mm
 
         // === Country of Origin (Key 55) ===
         m.main.country_of_origin?.takeIf { it.isNotBlank() }?.let { data[55] = it }
@@ -841,9 +841,9 @@ class Serializer(
         // === Material Abbreviation (Key 52) ===
         main.material_abbreviation = node.get("52").asFlexibleString()
 
-        // === Filament Length (Keys 53-54) ===
-        main.nominal_full_length = node.get("53").asFlexibleFloat()
-        main.actual_full_length = node.get("54").asFlexibleFloat()
+        // === Filament Length (Keys 53-54) - stored in mm, convert to meters for UI ===
+        main.nominal_full_length = node.get("53").asFlexibleFloat()?.let { it / 1000f }  // mm → m
+        main.actual_full_length = node.get("54").asFlexibleFloat()?.let { it / 1000f }   // mm → m
 
         // === Country of Origin (Key 55) ===
         main.country_of_origin = node.get("55").asFlexibleString()

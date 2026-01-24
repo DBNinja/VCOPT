@@ -241,7 +241,7 @@ class OpenPrintTagEncodeDecodeTest {
 
         // Instance info
         assertEquals(756f, model.main.actual_netto_full_weight)
-        assertEquals(226000f, model.main.actual_full_length)
+        assertEquals(226f, model.main.actual_full_length)  // 226000mm stored → 226m displayed
 
         // High-temp printing parameters
         assertEquals(360, model.main.min_print_temperature)
