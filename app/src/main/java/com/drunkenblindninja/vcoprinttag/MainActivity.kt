@@ -132,6 +132,10 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
 
             val auxOffset = data.getIntExtra(AuxEditorActivity.RESULT_AUX_OFFSET, -1)
 
+            // Update cached model with new aux data and refresh display
+            cachedModel?.aux = aux
+            displayTagData(cachedModel)
+
             // Encode aux region
             lifecycleScope.launch(Dispatchers.IO) {
                 ensureMapsLoaded()
