@@ -106,6 +106,10 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
                         cachedModel = decodedModel
                         cachedAuxOffset = result?.auxByteOffset
                         displayTagData(decodedModel)
+                        // Automatically switch to write mode after generating data
+                        isWriteMode = true
+                        isAuxWriteMode = false
+                        updateModeIndicator()
                         Toast.makeText(this@MainActivity, R.string.toast_data_ready_to_write, Toast.LENGTH_SHORT).show()
                     }
                 }
