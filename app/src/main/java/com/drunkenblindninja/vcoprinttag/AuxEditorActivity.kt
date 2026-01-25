@@ -33,6 +33,7 @@ class AuxEditorActivity : AppCompatActivity() {
     // Weight data from main region for calculation
     private var fullWeight: Float? = null
     private var emptyContainerWeight: Float? = null
+    private var materialClass: String? = null
 
     companion object {
         const val EXTRA_CONSUMED_WEIGHT = "consumed_weight"
@@ -42,6 +43,7 @@ class AuxEditorActivity : AppCompatActivity() {
         const val EXTRA_AUX_BYTE_OFFSET = "aux_byte_offset"
         const val EXTRA_FULL_WEIGHT = "full_weight"
         const val EXTRA_EMPTY_CONTAINER_WEIGHT = "empty_container_weight"
+        const val EXTRA_MATERIAL_CLASS = "material_class"
 
         const val RESULT_CONSUMED_WEIGHT = "result_consumed_weight"
         const val RESULT_WORKGROUP = "result_workgroup"
@@ -114,6 +116,10 @@ class AuxEditorActivity : AppCompatActivity() {
         // Get weight data from main region for calculator
         fullWeight = intent.getFloatExtra(EXTRA_FULL_WEIGHT, Float.MIN_VALUE).takeIf { it != Float.MIN_VALUE }
         emptyContainerWeight = intent.getFloatExtra(EXTRA_EMPTY_CONTAINER_WEIGHT, Float.MIN_VALUE).takeIf { it != Float.MIN_VALUE }
+        materialClass = intent.getStringExtra(EXTRA_MATERIAL_CLASS)
+
+        // Only show last stir time for SLA (resin) materials
+        binding.layoutLastStirTime.visibility = if (materialClass == "SLA") View.VISIBLE else View.GONE
 
         // Pre-fill fields
         intent.getFloatExtra(EXTRA_CONSUMED_WEIGHT, Float.MIN_VALUE).let {
