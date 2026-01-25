@@ -150,6 +150,18 @@ class AuxEditorActivity : AppCompatActivity() {
 
         binding.weightCalculatorCard.visibility = View.VISIBLE
 
+        // Setup collapse/expand toggle
+        binding.calculatorHeader.setOnClickListener {
+            val isExpanded = binding.calculatorContent.visibility == View.VISIBLE
+            if (isExpanded) {
+                binding.calculatorContent.visibility = View.GONE
+                binding.ivExpandCollapse.rotation = 0f
+            } else {
+                binding.calculatorContent.visibility = View.VISIBLE
+                binding.ivExpandCollapse.rotation = 180f
+            }
+        }
+
         // Show the reference weights
         binding.tvCalculatorInfo.text = getString(
             R.string.calculator_info_format,
