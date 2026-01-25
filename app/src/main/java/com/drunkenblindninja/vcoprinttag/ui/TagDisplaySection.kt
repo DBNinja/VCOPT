@@ -141,7 +141,7 @@ object TagDisplayBuilder {
         if (aux != null && (aux.consumed_weight != null || main.nominal_netto_full_weight != null)) {
             items.add(TagDisplayItem.SectionHeader("Usage"))
             items.add(TagDisplayItem.UsageProgress(
-                totalWeight = main.nominal_netto_full_weight,
+                totalWeight = main.actual_netto_full_weight ?: main.nominal_netto_full_weight,
                 consumedWeight = aux.consumed_weight,
                 workgroup = aux.workgroup
             ))
