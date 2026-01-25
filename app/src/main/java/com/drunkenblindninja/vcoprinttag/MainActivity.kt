@@ -166,6 +166,14 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
     companion object {
         const val SPEC_SIZE_LIMIT = 316
         const val HARD_SIZE_LIMIT = 504
+
+        // State keys for saving/restoring instance state
+        private const val STATE_CACHED_TAG_DATA = "cached_tag_data"
+        private const val STATE_IS_WRITE_MODE = "is_write_mode"
+        private const val STATE_IS_AUX_WRITE_MODE = "is_aux_write_mode"
+        private const val STATE_PENDING_AUX_DATA = "pending_aux_data"
+        private const val STATE_PENDING_AUX_OFFSET = "pending_aux_offset"
+        private const val STATE_CACHED_AUX_OFFSET = "cached_aux_offset"
     }
 
     fun checkSize(binSize: Int?)
@@ -222,6 +230,11 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
 
         // Setup click listeners
         setupClickListeners()
+
+        // Restore state if available
+        if (savedInstanceState != null) {
+            restoreInstanceState(savedInstanceState)
+        }
 
         // Initialize mode indicator
         updateModeIndicator()
@@ -549,6 +562,46 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
         super.onPause()
         nfcAdapter?.disableReaderMode(this)
         Log.d("NFC", "Reader mode disabled")
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putByteArray(STATE_CACHED_TAG_DATA, cachedTagData)
+        outState.putBoolean(STATE_IS_WRITE_MODE, isWriteMode)
+        outState.putBoolean(STATE_IS_AUX_WRITE_MODE, isAuxWriteMode)
+        outState.putByteArray(STATE_PENDING_AUX_DATA, pendingAuxData)
+        outState.putInt(STATE_PENDING_AUX_OFFSET, pendingAuxOffset)
+        cachedAuxOffset?.let { outState.putInt(STATE_CACHED_AUX_OFFSET, it) }
+    }
+
+    private fun restoreInstanceState(savedInstanceState: Bundle) {
+        cachedTagData = savedInstanceState.getByteArray(STATE_CACHED_TAG_DATA)
+        isWriteMode = savedInstanceState.getBoolean(STATE_IS_WRITE_MODE, false)
+        isAuxWriteMode = savedInstanceState.getBoolean(STATE_IS_AUX_WRITE_MODE, false)
+        pendingAuxData = savedInstanceState.getByteArray(STATE_PENDING_AUX_DATA)
+        pendingAuxOffset = savedInstanceState.getInt(STATE_PENDING_AUX_OFFSET, -1)
+        if (savedInstanceState.containsKey(STATE_CACHED_AUX_OFFSET)) {
+            cachedAuxOffset = savedInstanceState.getInt(STATE_CACHED_AUX_OFFSET)
+        }
+
+        // Re-deserialize the model from cached data and update display
+        cachedTagData?.let { data ->
+            lifecycleScope.launch(Dispatchers.IO) {
+                ensureMapsLoaded()
+                val serializer = Serializer(classMap, typeMap, tagsMap, certsMap)
+                val result = serializer.deserializeWithOffsets(data)
+
+                withContext(Dispatchers.Main) {
+                    cachedModel = result?.model
+                    // Only update cachedAuxOffset if we didn't have one saved
+                    if (cachedAuxOffset == null) {
+                        cachedAuxOffset = result?.auxByteOffset
+                    }
+                    displayTagData(cachedModel)
+                    binding.tvStatus.text = getString(R.string.status_tag_read_success, data.size)
+                }
+            }
+        }
     }
 
     // NfcAdapter.ReaderCallback implementation
