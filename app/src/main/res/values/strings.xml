@@ -182,6 +182,14 @@
     <string name="toast_aux_update_failed">Aux update failed. Try again.</string>
     <string name="toast_no_aux_offset">Tag has no aux region offset. Cannot do partial write.</string>
 
+    <!-- Weight Calculator -->
+    <string name="weight_calculator_title">Calculate from spool weight</string>
+    <string name="calculator_info_format">Full weight: %1$dg • Empty spool: %2$dg</string>
+    <string name="hint_current_spool_weight">Current spool weight</string>
+    <string name="calculated_consumed_format">Consumed: %1$dg</string>
+    <string name="calculated_consumed_placeholder">Enter spool weight to calculate</string>
+    <string name="btn_apply">Apply</string>
+
     <!-- Add aux region dialog -->
     <string name="dialog_title_add_aux">Add Aux Region?</string>
     <string name="dialog_message_add_aux">This tag does not have an aux region. Would you like to add one? This will rewrite the entire tag.</string>

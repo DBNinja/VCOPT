@@ -3,9 +3,11 @@ package com.drunkenblindninja.vcoprinttag
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.widget.doAfterTextChanged
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.drunkenblindninja.vcoprinttag.databinding.ActivityAuxEditorBinding
 import java.time.Instant
@@ -28,12 +30,18 @@ class AuxEditorActivity : AppCompatActivity() {
     // Offset info for partial write (passed from MainActivity)
     private var auxByteOffset: Int = -1
 
+    // Weight data from main region for calculation
+    private var fullWeight: Float? = null
+    private var emptyContainerWeight: Float? = null
+
     companion object {
         const val EXTRA_CONSUMED_WEIGHT = "consumed_weight"
         const val EXTRA_WORKGROUP = "workgroup"
         const val EXTRA_USER_DATA = "user_data"
         const val EXTRA_LAST_STIR_TIME = "last_stir_time"
         const val EXTRA_AUX_BYTE_OFFSET = "aux_byte_offset"
+        const val EXTRA_FULL_WEIGHT = "full_weight"
+        const val EXTRA_EMPTY_CONTAINER_WEIGHT = "empty_container_weight"
 
         const val RESULT_CONSUMED_WEIGHT = "result_consumed_weight"
         const val RESULT_WORKGROUP = "result_workgroup"
@@ -62,6 +70,9 @@ class AuxEditorActivity : AppCompatActivity() {
 
         // Pre-fill from intent extras
         preFillFromIntent()
+
+        // Setup weight calculator
+        setupWeightCalculator()
 
         // Setup update button
         binding.btnUpdateAux.setOnClickListener {
@@ -100,6 +111,10 @@ class AuxEditorActivity : AppCompatActivity() {
         // Get offset info
         auxByteOffset = intent.getIntExtra(EXTRA_AUX_BYTE_OFFSET, -1)
 
+        // Get weight data from main region for calculator
+        fullWeight = intent.getFloatExtra(EXTRA_FULL_WEIGHT, Float.MIN_VALUE).takeIf { it != Float.MIN_VALUE }
+        emptyContainerWeight = intent.getFloatExtra(EXTRA_EMPTY_CONTAINER_WEIGHT, Float.MIN_VALUE).takeIf { it != Float.MIN_VALUE }
+
         // Pre-fill fields
         intent.getFloatExtra(EXTRA_CONSUMED_WEIGHT, Float.MIN_VALUE).let {
             if (it != Float.MIN_VALUE) {
@@ -120,6 +135,51 @@ class AuxEditorActivity : AppCompatActivity() {
                 lastStirTime = LocalDate.ofEpochDay(it)
                 binding.getLastStirTime.setText(lastStirTime?.format(dateFormatter))
             }
+        }
+    }
+
+    private fun setupWeightCalculator() {
+        // Only show calculator if we have the required weight data
+        val full = fullWeight
+        val empty = emptyContainerWeight
+
+        if (full == null || empty == null) {
+            binding.weightCalculatorCard.visibility = View.GONE
+            return
+        }
+
+        binding.weightCalculatorCard.visibility = View.VISIBLE
+
+        // Show the reference weights
+        binding.tvCalculatorInfo.text = getString(
+            R.string.calculator_info_format,
+            full.toInt(),
+            empty.toInt()
+        )
+
+        // Calculate consumed weight when spool weight changes
+        binding.getCurrentSpoolWeight.doAfterTextChanged { text ->
+            val currentWeight = text?.toString()?.toFloatOrNull()
+            if (currentWeight != null) {
+                val remainingMaterial = currentWeight - empty
+                val consumed = full - remainingMaterial
+                binding.tvCalculatedConsumed.text = getString(
+                    R.string.calculated_consumed_format,
+                    consumed.coerceAtLeast(0f).toInt()
+                )
+                binding.btnApplyCalculated.isEnabled = consumed >= 0f
+            } else {
+                binding.tvCalculatedConsumed.text = getString(R.string.calculated_consumed_placeholder)
+                binding.btnApplyCalculated.isEnabled = false
+            }
+        }
+
+        // Apply calculated value to consumed weight field
+        binding.btnApplyCalculated.setOnClickListener {
+            val currentWeight = binding.getCurrentSpoolWeight.text?.toString()?.toFloatOrNull() ?: return@setOnClickListener
+            val remainingMaterial = currentWeight - empty
+            val consumed = (full - remainingMaterial).coerceAtLeast(0f)
+            binding.getConsumedWeight.setText(consumed.toInt().toString())
         }
     }
 

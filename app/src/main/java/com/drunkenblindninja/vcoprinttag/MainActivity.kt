@@ -362,6 +362,13 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
                 aux.general_purpose_range_user?.let { putExtra(AuxEditorActivity.EXTRA_USER_DATA, it) }
                 aux.last_stir_time?.let { putExtra(AuxEditorActivity.EXTRA_LAST_STIR_TIME, it.toEpochDay()) }
             }
+            // Pass weight data from main region for calculator
+            cachedModel?.main?.let { main ->
+                // Use actual weight if available, otherwise nominal
+                val fullWeight = main.actual_netto_full_weight ?: main.nominal_netto_full_weight
+                fullWeight?.let { putExtra(AuxEditorActivity.EXTRA_FULL_WEIGHT, it) }
+                main.empty_container_weight?.let { putExtra(AuxEditorActivity.EXTRA_EMPTY_CONTAINER_WEIGHT, it) }
+            }
             // Pass aux offset for partial write
             putExtra(AuxEditorActivity.EXTRA_AUX_BYTE_OFFSET, cachedAuxOffset!!)
         }
