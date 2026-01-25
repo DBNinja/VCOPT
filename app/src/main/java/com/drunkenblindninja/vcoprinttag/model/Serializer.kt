@@ -548,11 +548,7 @@ class Serializer(
         var auxSize: Int? = null
 
         try {
-            var firstNode: JsonNode = mapper.readTree(parser) ?: return null
-
-            if (isVersionMarker(firstNode)) {
-                firstNode = mapper.readTree(parser) ?: return null
-            }
+            val firstNode: JsonNode = mapper.readTree(parser) ?: return null
 
             if (isMetaRegion(firstNode)) {
                 val metaEndPosition = parser.currentLocation.byteOffset.toInt()
@@ -612,14 +608,7 @@ class Serializer(
 
         try {
             // 1. Read the first CBOR Object
-            var firstNode: JsonNode = mapper.readTree(parser) ?: return
-
-            // Check if this first node is a VERSION MARKER (small map with only key 2)
-            // Format: {2: version_number} - skip it and read the next object
-            if (isVersionMarker(firstNode)) {
-                Log.d("Serializer", "Skipping version marker: ${firstNode}")
-                firstNode = mapper.readTree(parser) ?: return
-            }
+            val firstNode: JsonNode = mapper.readTree(parser) ?: return
 
             // Check if this first node is the META region
             // Meta region typically uses keys 0-3 for offsets/sizes
@@ -679,16 +668,6 @@ class Serializer(
         } finally {
             parser.close()
         }
-    }
-
-    /**
-     * Check if a CBOR map is a version marker (format: {2: version_number})
-     */
-    private fun isVersionMarker(node: JsonNode): Boolean {
-        if (!node.isObject) return false
-        val fields = node.fieldNames().asSequence().toList()
-        // Version marker has exactly one field with key "2"
-        return fields.size == 1 && fields[0] == "2" && node.get("2")?.isInt == true
     }
 
     /**
