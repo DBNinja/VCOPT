@@ -496,27 +496,23 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
                 var decodedModel: OpenPrintTagModel? = null
                 var auxOffset: Int? = null
 
-                if (data != null) {
-                    ensureMapsLoaded()
-                    val serializer = Serializer(classMap, typeMap, tagsMap, certsMap)
-                    // Use deserializeWithOffsets to get aux region location
-                    val result = serializer.deserializeWithOffsets(data)
-                    decodedModel = result?.model
-                    auxOffset = result?.auxByteOffset
-                }
+                ensureMapsLoaded()
+                val serializer = Serializer(classMap, typeMap, tagsMap, certsMap)
+                // Use deserializeWithOffsets to get aux region location
+                val result = serializer.deserializeWithOffsets(data)
+                decodedModel = result?.model
+                auxOffset = result?.auxByteOffset
+
 
                 withContext(Dispatchers.Main) {
                     binding.progressBar.visibility = View.GONE
-                    if (data != null) {
-                        cachedTagData = data
-                        cachedModel = decodedModel
-                        cachedAuxOffset = auxOffset
-                        binding.tvStatus.text = getString(R.string.status_tag_read_success, data.size)
-                        displayTagData(decodedModel)
-                        checkSize(cachedTagData?.size)
-                    } else {
-                        binding.tvStatus.text = getString(R.string.status_read_failed)
-                    }
+                    cachedTagData = data
+                    cachedModel = decodedModel
+                    cachedAuxOffset = auxOffset
+                    binding.tvStatus.text = getString(R.string.status_tag_read_success, data.size)
+                    displayTagData(decodedModel)
+                    checkSize(cachedTagData?.size)
+
                 }
             } catch (e: Exception) {
                 Log.e("NFC", "Read failed", e)
