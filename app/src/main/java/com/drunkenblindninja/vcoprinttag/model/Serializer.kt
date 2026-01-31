@@ -179,7 +179,7 @@ class Serializer(
             put(0x51.toByte())               // Header
             put(0x01.toByte())               // Type Length ("U" is 1 byte)
             put(urlPayload.size.toByte())    // Payload Length (SR=1)
-            put('U'.toByte())                // Type
+            put('U'.code.toByte())           // Type
             put(urlPayload)                  // Payload (Prefix + URL)
         }.array()
 
@@ -551,7 +551,7 @@ class Serializer(
             val firstNode: JsonNode = mapper.readTree(parser) ?: return null
 
             if (isMetaRegion(firstNode)) {
-                val metaEndPosition = parser.currentLocation.byteOffset.toInt()
+                val metaEndPosition = parser.currentLocation().byteOffset.toInt()
                 val explicitMainOffset = if (firstNode.has("0")) firstNode.get("0").asInt() else null
                 val explicitMainSize = if (firstNode.has("1")) firstNode.get("1").asInt() else null
                 val explicitAuxOffset = if (firstNode.has("2")) firstNode.get("2").asInt() else null
@@ -584,13 +584,13 @@ class Serializer(
             } else {
                 // No meta region - sequential CBOR parsing
                 model.main = decodeMainRegionFromNode(firstNode)
-                val mainEndPos = parser.currentLocation.byteOffset.toInt()
+                val mainEndPos = parser.currentLocation().byteOffset.toInt()
 
                 val secondNode: JsonNode? = mapper.readTree(parser)
                 if (secondNode != null) {
                     auxOffset = mainEndPos
                     model.aux = decodeAuxRegionFromNode(secondNode)
-                    auxSize = parser.currentLocation.byteOffset.toInt() - mainEndPos
+                    auxSize = parser.currentLocation().byteOffset.toInt() - mainEndPos
                 }
             }
         } catch (e: Exception) {
@@ -615,7 +615,7 @@ class Serializer(
             // Main region uses keys 0-5+ for UUIDs, GTIN, etc.
             if (isMetaRegion(firstNode)) {
                 // Get position where meta region ends (where main would start if offset not specified)
-                val metaEndPosition = parser.currentLocation.byteOffset.toInt()
+                val metaEndPosition = parser.currentLocation().byteOffset.toInt()
 
                 // Get explicit values (null if missing)
                 val explicitMainOffset = if (firstNode.has("0")) firstNode.get("0").asInt() else null
