@@ -1,0 +1,9 @@
+VCOPT helps you create and manage NFC tags that store metadata about 3D printing materials like filament spools. Tags encode information such as brand, material type, printing temperatures, colors, and certifications using the OpenPrintTag specification.
+
+Features:
+- Read and write NFC tags containing filament spool data
+- Generate tags following the OpenPrintTag specification
+	- Store comprehensive material metadata such as: brand, type, temperatures, colors, certifications, and more
+- Usage Tracking - Write to the aux region only to track filament consumption without rewriting the full tag
+- Import and export tag data as files
+
