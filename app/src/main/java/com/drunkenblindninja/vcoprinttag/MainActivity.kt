@@ -7,6 +7,8 @@ import android.net.Uri
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
@@ -17,6 +19,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
+import androidx.core.view.AccessibilityDelegateCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -43,6 +47,11 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
     // Cached deserialized model for aux editing
     private var cachedModel: OpenPrintTagModel? = null
     private var cachedAuxOffset: Int? = null
+
+    // Trash button state
+    private var trashPrimed = false
+    private val handler = Handler(Looper.getMainLooper())
+    private val trashResetRunnable = Runnable { resetTrashButton() }
 
     // Tag data adapter
     private lateinit var tagDataAdapter: TagDataAdapter
@@ -275,6 +284,81 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
         binding.btnEditAux.setOnClickListener {
             launchAuxEditor()
         }
+
+        // Clear data button with double-tap confirmation
+        binding.clearButtonContainer.setOnClickListener {
+            if (trashPrimed) {
+                clearCachedData()
+            } else {
+                primeTrashButton()
+            }
+        }
+
+        // Setup accessibility for clear button
+        setupClearButtonAccessibility()
+    }
+
+    private fun setupClearButtonAccessibility() {
+        ViewCompat.setAccessibilityDelegate(binding.clearButtonContainer,
+            object : AccessibilityDelegateCompat() {
+                override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfoCompat) {
+                    super.onInitializeAccessibilityNodeInfo(host, info)
+                    info.addAction(AccessibilityNodeInfoCompat.AccessibilityActionCompat(
+                        AccessibilityNodeInfoCompat.ACTION_LONG_CLICK,
+                        getString(R.string.accessibility_action_clear)
+                    ))
+                }
+
+                override fun performAccessibilityAction(host: View, action: Int, args: Bundle?): Boolean {
+                    if (action == AccessibilityNodeInfoCompat.ACTION_LONG_CLICK) {
+                        clearCachedData()
+                        return true
+                    }
+                    return super.performAccessibilityAction(host, action, args)
+                }
+            })
+    }
+
+    private fun primeTrashButton() {
+        trashPrimed = true
+        // Animate lid: slide up and rotate
+        binding.trashLid.animate()
+            .translationY(-8f * resources.displayMetrics.density)
+            .rotation(-30f)
+            .setDuration(200)
+            .start()
+        binding.clearButtonContainer.contentDescription =
+            getString(R.string.content_description_clear_confirm)
+        binding.clearButtonContainer.announceForAccessibility(
+            getString(R.string.content_description_clear_confirm))
+        handler.postDelayed(trashResetRunnable, 2000)
+    }
+
+    private fun resetTrashButton() {
+        trashPrimed = false
+        handler.removeCallbacks(trashResetRunnable)
+        // Animate lid: slide back down and reset rotation
+        binding.trashLid.animate()
+            .translationY(0f)
+            .rotation(0f)
+            .setDuration(200)
+            .start()
+        binding.clearButtonContainer.contentDescription =
+            getString(R.string.content_description_clear)
+    }
+
+    private fun clearCachedData() {
+        cachedTagData = null
+        cachedModel = null
+        cachedAuxOffset = null
+        pendingAuxData = null
+        pendingAuxOffset = -1
+        isWriteMode = false
+        isAuxWriteMode = false
+        displayTagData(null)
+        binding.tvStatus.text = getString(R.string.status_data_cleared)
+        updateModeIndicator()
+        resetTrashButton()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -558,6 +642,10 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
         super.onPause()
         nfcAdapter?.disableReaderMode(this)
         Log.d("NFC", "Reader mode disabled")
+        // Reset trash button state if primed
+        if (trashPrimed) {
+            resetTrashButton()
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

@@ -178,6 +178,34 @@
                 android:layout_weight="1"
                 android:text="@string/btn_write_tag" />
 
+            <FrameLayout
+                android:id="@+id/clearButtonContainer"
+                android:layout_width="48dp"
+                android:layout_height="@dimen/button_height"
+                android:layout_marginStart="@dimen/spacing_sm"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/content_description_clear">
+
+                <ImageView
+                    android:id="@+id/trashBase"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_trash_base"
+                    android:importantForAccessibility="no" />
+
+                <ImageView
+                    android:id="@+id/trashLid"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_trash_lid"
+                    android:importantForAccessibility="no" />
+
+            </FrameLayout>
+
         </LinearLayout>
 
     </com.google.android.material.bottomappbar.BottomAppBar>
