@@ -93,7 +93,13 @@ class NfcHelper(private val tag: Tag) {
                 writeCmd[0] = 0xA2.toByte()
                 writeCmd[1] = currentPage.toByte()
                 System.arraycopy(merged, 0, writeCmd, 2, pageSize)
-                nfcA.transceive(writeCmd)
+                val writeResp = nfcA.transceive(writeCmd)
+                // Check for ACK (0x0A) - NFC Forum Type 2 Tag spec
+                if (writeResp.isEmpty() || (writeResp[0].toInt() and 0x0F) != 0x0A) {
+                    Log.e("NfcHelper", "Write failed at page $currentPage (merge), response: ${writeResp.contentToString()}")
+                    return false
+                }
+                Thread.sleep(5)  // Inter-write delay for tag stability
 
                 dataIndex += bytesToCopy
                 currentPage++
@@ -110,7 +116,13 @@ class NfcHelper(private val tag: Tag) {
                 cmd[0] = 0xA2.toByte()
                 cmd[1] = currentPage.toByte()
                 System.arraycopy(buf, 0, cmd, 2, pageSize)
-                nfcA.transceive(cmd)
+                val resp = nfcA.transceive(cmd)
+                // Check for ACK (0x0A) - NFC Forum Type 2 Tag spec
+                if (resp.isEmpty() || (resp[0].toInt() and 0x0F) != 0x0A) {
+                    Log.e("NfcHelper", "Write failed at page $currentPage, response: ${resp.contentToString()}")
+                    return false
+                }
+                Thread.sleep(5)  // Inter-write delay for tag stability
 
                 dataIndex += chunkLen
                 currentPage++
@@ -269,6 +281,12 @@ class NfcHelper(private val tag: Tag) {
                 cmd[1] = page.toByte()
                 System.arraycopy(buf, 0, cmd, 2, pageSize)
                 val resp = nfcA.transceive(cmd)
+                // Check for ACK (0x0A) - NFC Forum Type 2 Tag spec
+                if (resp.isEmpty() || (resp[0].toInt() and 0x0F) != 0x0A) {
+                    Log.e("NfcHelper", "Write failed at page $page, response: ${resp.contentToString()}")
+                    return false
+                }
+                Thread.sleep(5)  // Inter-write delay for tag stability
                 offset += chunkLen
                 page += 1
             }
