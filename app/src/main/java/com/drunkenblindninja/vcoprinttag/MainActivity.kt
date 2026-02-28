@@ -48,6 +48,9 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
     private var cachedModel: OpenPrintTagModel? = null
     private var cachedAuxOffset: Int? = null
 
+    // Guard against concurrent NFC operations
+    private var isOperationInProgress = false
+
     // Trash button state
     private var trashPrimed = false
     private val handler = Handler(Looper.getMainLooper())
@@ -590,6 +593,7 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
 
                 withContext(Dispatchers.Main) {
                     binding.progressBar.visibility = View.GONE
+                    isOperationInProgress = false
                     cachedTagData = data
                     cachedModel = decodedModel
                     cachedAuxOffset = auxOffset
@@ -602,6 +606,7 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
                 Log.e("NFC", "Read failed", e)
                 withContext(Dispatchers.Main) {
                     binding.progressBar.visibility = View.GONE
+                    isOperationInProgress = false
                     binding.tvStatus.text = getString(R.string.error_nfc_operation_failed, e.message ?: "Unknown error")
                     Toast.makeText(this@MainActivity, R.string.toast_read_failed, Toast.LENGTH_SHORT).show()
                 }
@@ -697,6 +702,13 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
     }
 
     private fun handleTagDiscovered(tag: Tag) {
+        // Prevent concurrent operations when tag stays in field
+        if (isOperationInProgress) {
+            Log.d("NFC", "Operation already in progress, ignoring tag")
+            return
+        }
+        isOperationInProgress = true
+
         when {
             isAuxWriteMode -> {
                 // Partial aux write mode
@@ -712,9 +724,10 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
                                 pendingAuxData = null
                                 pendingAuxOffset = -1
                                 updateModeIndicator()
-                                // Re-read tag to show updated data
+                                // Re-read tag to show updated data (readAndDisplayTag will reset isOperationInProgress)
                                 readAndDisplayTag(tag)
                             } else {
+                                isOperationInProgress = false
                                 Toast.makeText(this@MainActivity, R.string.toast_aux_update_failed, Toast.LENGTH_SHORT).show()
                             }
                         }
@@ -722,6 +735,7 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
                         Log.e("NFC", "Aux write failed", e)
                         withContext(Dispatchers.Main) {
                             binding.progressBar.visibility = View.GONE
+                            isOperationInProgress = false
                             binding.tvStatus.text = getString(R.string.error_nfc_operation_failed, e.message ?: "Unknown error")
                             Toast.makeText(this@MainActivity, R.string.toast_aux_update_failed, Toast.LENGTH_SHORT).show()
                         }
@@ -735,6 +749,7 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
                         val success = writeMemoryToTag(tag)
                         withContext(Dispatchers.Main) {
                             binding.progressBar.visibility = View.GONE
+                            isOperationInProgress = false
                             if (success) {
                                 Toast.makeText(this@MainActivity, R.string.toast_write_complete, Toast.LENGTH_SHORT).show()
                                 isWriteMode = false
@@ -747,6 +762,7 @@ class MainActivity : AppCompatActivity(), NfcAdapter.ReaderCallback {
                         Log.e("NFC", "Write failed", e)
                         withContext(Dispatchers.Main) {
                             binding.progressBar.visibility = View.GONE
+                            isOperationInProgress = false
                             binding.tvStatus.text = getString(R.string.error_nfc_operation_failed, e.message ?: "Unknown error")
                             Toast.makeText(this@MainActivity, R.string.toast_write_failed, Toast.LENGTH_SHORT).show()
                         }
