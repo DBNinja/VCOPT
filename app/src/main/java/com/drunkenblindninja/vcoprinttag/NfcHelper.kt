@@ -69,6 +69,9 @@ class NfcHelper(private val tag: Tag) {
         val nfcA = NfcA.get(tag) ?: throw IOException("NfcA not available")
         nfcA.connect()
         try {
+            // Small delay after connect to let the tag stabilize
+            Thread.sleep(50)
+
             val pageSize = 4
             // Page 4 is where user data starts (pages 0-3 are header/CC)
             val startPage = 4 + (byteOffset / pageSize)
@@ -269,6 +272,9 @@ class NfcHelper(private val tag: Tag) {
         val nfcA = NfcA.get(tag) ?: throw IOException("NfcA not available")
         nfcA.connect()
         try {
+            // Small delay after connect to let the tag stabilize
+            Thread.sleep(50)
+
             val pageSize = 4
             var page = 4
             var offset = 0
