@@ -11,6 +11,15 @@ class NfcHelper(private val tag: Tag) {
 
     enum class Tech { NfcA, NfcV, Unknown }
 
+    /**
+     * NFC-A tag information from GET_VERSION command
+     */
+    data class NfcATagInfo(
+        val tagType: String,        // e.g., "NTAG213", "NTAG215", "NTAG216", "Unknown"
+        val userMemoryBytes: Int,   // User memory size in bytes
+        val lastUserPage: Int       // Last readable/writable user page
+    )
+
     fun detectTech(): Tech {
         Log.d("NfcHelper", "Tag techs: ${tag.techList.joinToString()}")
         return when {
@@ -233,14 +242,19 @@ class NfcHelper(private val tag: Tag) {
             // Small delay after connect to let the tag stabilize
             Thread.sleep(50)
 
+            // Get tag info to determine memory size
+            val tagInfo = getTagInfo(nfcA)
+            Log.d("NfcHelper", "Detected ${tagInfo.tagType}: ${tagInfo.userMemoryBytes} bytes, pages 4-${tagInfo.lastUserPage}")
+
             val startPage = 4
-            val endPage = 129
+            val endPage = tagInfo.lastUserPage
 
             // Try FAST_READ first (0x3A) - not supported on all devices/tags
             try {
                 val cmd = byteArrayOf(0x3A.toByte(), startPage.toByte(), endPage.toByte())
                 val resp = nfcA.transceive(cmd)
                 if (resp.isNotEmpty()) {
+                    Log.d("NfcHelper", "FAST_READ succeeded, ${resp.size} bytes")
                     return resp
                 }
             } catch (e: IOException) {
@@ -285,12 +299,73 @@ class NfcHelper(private val tag: Tag) {
         }
     }
 
+    /**
+     * Get NFC-A tag information using GET_VERSION command (0x60).
+     * Works with NTAG21x series tags.
+     * Falls back to NTAG215 defaults if command fails.
+     */
+    private fun getTagInfo(nfcA: NfcA): NfcATagInfo {
+        try {
+            val cmd = byteArrayOf(0x60.toByte())  // GET_VERSION command
+            val resp = nfcA.transceive(cmd)
+
+            if (resp.size < 8) {
+                Log.w("NfcHelper", "GET_VERSION short response: ${resp.size} bytes")
+                return NfcATagInfo("Unknown", 504, 129)  // Default to NTAG215
+            }
+
+            // Response format (8 bytes):
+            // [0] Fixed header (0x00)
+            // [1] Vendor ID (0x04 = NXP)
+            // [2] Product type (0x04 = NTAG)
+            // [3] Product subtype
+            // [4] Major product version
+            // [5] Minor product version
+            // [6] Storage size (encoded)
+            // [7] Protocol type
+
+            val vendorId = resp[1].toInt() and 0xFF
+            val productType = resp[2].toInt() and 0xFF
+            val storageSize = resp[6].toInt() and 0xFF
+
+            Log.d("NfcHelper", "GET_VERSION: vendor=0x${"%02X".format(vendorId)}, " +
+                    "type=0x${"%02X".format(productType)}, storage=0x${"%02X".format(storageSize)}")
+
+            // Identify tag type based on storage size byte
+            return when (storageSize) {
+                0x0F -> NfcATagInfo("NTAG213", 144, 39)   // 144 bytes user memory
+                0x11 -> NfcATagInfo("NTAG215", 504, 129)  // 504 bytes user memory
+                0x13 -> NfcATagInfo("NTAG216", 888, 225)  // 888 bytes user memory
+                0x10 -> NfcATagInfo("NTAG210", 48, 15)    // 48 bytes user memory
+                0x06 -> NfcATagInfo("NTAG210u", 48, 15)   // 48 bytes (micro variant)
+                0x0E -> NfcATagInfo("NTAG212", 128, 35)   // 128 bytes user memory
+                else -> {
+                    Log.w("NfcHelper", "Unknown storage size 0x${"%02X".format(storageSize)}, assuming NTAG215")
+                    NfcATagInfo("Unknown (0x${"%02X".format(storageSize)})", 504, 129)
+                }
+            }
+        } catch (e: Exception) {
+            Log.w("NfcHelper", "GET_VERSION failed: ${e.message}, assuming NTAG215")
+            return NfcATagInfo("Unknown", 504, 129)  // Default to NTAG215
+        }
+    }
+
     private fun writeNfcAFull(data: ByteArray): Boolean {
         val nfcA = NfcA.get(tag) ?: throw IOException("NfcA not available")
         nfcA.connect()
         try {
             // Small delay after connect to let the tag stabilize
             Thread.sleep(50)
+
+            // Get tag info to determine memory size
+            val tagInfo = getTagInfo(nfcA)
+            Log.d("NfcHelper", "Writing to ${tagInfo.tagType}: ${data.size} bytes to write, ${tagInfo.userMemoryBytes} bytes available")
+
+            // Check if data fits on the tag
+            if (data.size > tagInfo.userMemoryBytes) {
+                Log.e("NfcHelper", "Data too large: ${data.size} bytes > ${tagInfo.userMemoryBytes} bytes available on ${tagInfo.tagType}")
+                throw IOException("Data too large for tag: ${data.size} bytes, but ${tagInfo.tagType} only has ${tagInfo.userMemoryBytes} bytes")
+            }
 
             val pageSize = 4
             var page = 4
@@ -313,8 +388,10 @@ class NfcHelper(private val tag: Tag) {
                 offset += chunkLen
                 page += 1
             }
+            Log.d("NfcHelper", "Write complete: ${page - 4} pages written to ${tagInfo.tagType}")
             return true
         } catch (e: IOException) {
+            Log.e("NfcHelper", "Write exception: ${e.message}")
             e.printStackTrace()
             return false
         } finally {
