@@ -230,6 +230,9 @@ class NfcHelper(private val tag: Tag) {
         val nfcA = NfcA.get(tag) ?: throw IOException("NfcA not available")
         nfcA.connect()
         try {
+            // Small delay after connect to let the tag stabilize
+            Thread.sleep(50)
+
             val startPage = 4
             val endPage = 129
 
@@ -244,24 +247,38 @@ class NfcHelper(private val tag: Tag) {
                 Log.d("NfcHelper", "FAST_READ not supported, falling back to page-by-page read")
             }
 
-            // Fallback: read page by page (better compatibility with Samsung devices)
+            // Fallback: read page by page (better compatibility with Samsung/OnePlus devices)
             val pageSize = 4
             val result = mutableListOf<Byte>()
             for (page in startPage..endPage) {
-                try {
-                    val cmd = byteArrayOf(0x30.toByte(), page.toByte())
-                    val resp = nfcA.transceive(cmd)
-                    // READ command returns 16 bytes (4 pages), we only want the first 4
-                    if (resp.size >= pageSize) {
-                        result.addAll(resp.take(pageSize))
-                    } else {
-                        break
+                var retries = 3
+                var lastException: Exception? = null
+                while (retries > 0) {
+                    try {
+                        val cmd = byteArrayOf(0x30.toByte(), page.toByte())
+                        val resp = nfcA.transceive(cmd)
+                        // READ command returns 16 bytes (4 pages), we only want the first 4
+                        if (resp.size >= pageSize) {
+                            result.addAll(resp.take(pageSize))
+                            break  // Success, exit retry loop
+                        } else {
+                            throw IOException("Short response: ${resp.size} bytes")
+                        }
+                    } catch (e: Exception) {
+                        lastException = e
+                        retries--
+                        if (retries > 0) {
+                            Log.d("NfcHelper", "Retry at page $page, $retries attempts left: ${e.message}")
+                            Thread.sleep(20)
+                        }
                     }
-                } catch (e: IOException) {
-                    Log.w("NfcHelper", "Read failed at page $page: ${e.message}")
+                }
+                if (retries == 0) {
+                    Log.w("NfcHelper", "Failed at page $page after retries: ${lastException?.message}")
                     break
                 }
             }
+            Log.d("NfcHelper", "Read ${result.size} bytes total from NFC-A tag")
             return result.toByteArray()
         } finally {
             try { nfcA.close() } catch (ignored: Exception) {}
